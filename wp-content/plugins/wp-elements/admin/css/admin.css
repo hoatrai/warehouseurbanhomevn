@@ -1,0 +1,195 @@
+/**
+ * Стили для админ-панели плагина мониторинга
+ */
+
+.my-monitoring-tabs {
+    border-bottom: 1px solid #ccc;
+    margin: 20px 0 0 0;
+    padding: 0;
+}
+
+.my-monitoring-tabs li {
+    display: inline-block;
+    margin: 0;
+    padding: 0;
+}
+
+.my-monitoring-tabs li a {
+    display: block;
+    padding: 10px 15px;
+    text-decoration: none;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    background: #f1f1f1;
+    color: #333;
+    margin-right: 5px;
+    border-radius: 4px 4px 0 0;
+}
+
+.my-monitoring-tabs li a:hover {
+    background: #e5e5e5;
+}
+
+.my-monitoring-tabs li.active a {
+    background: #fff;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+    color: #2271b1;
+    font-weight: 600;
+}
+
+.my-monitoring-tab-content {
+    display: none;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid #ccc;
+    border-top: none;
+}
+
+.my-monitoring-tab-content.active {
+    display: block;
+}
+
+.my-monitoring-status {
+    display: inline-block;
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.my-monitoring-status.success {
+    background: #d4edda;
+    color: #155724;
+}
+
+.my-monitoring-status.error {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.my-monitoring-status.warning {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.my-monitoring-queue-item {
+    padding: 10px;
+    margin: 5px 0;
+    background: #f9f9f9;
+    border-left: 3px solid #dc3545;
+    border-radius: 3px;
+}
+
+.my-monitoring-queue-item.success {
+    border-left-color: #28a745;
+}
+
+.my-monitoring-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 20px 0;
+}
+
+.my-monitoring-stat-card {
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    border-left: 4px solid #2271b1;
+}
+
+.my-monitoring-stat-card h3 {
+    margin: 0 0 10px 0;
+    font-size: 14px;
+    color: #666;
+}
+
+.my-monitoring-stat-card .value {
+    font-size: 24px;
+    font-weight: 600;
+    color: #2271b1;
+}
+
+.my-monitoring-log-viewer {
+    background: #1e1e1e;
+    color: #d4d4d4;
+    padding: 15px;
+    border-radius: 5px;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 15px 0;
+}
+
+.my-monitoring-log-viewer .log-line {
+    margin: 2px 0;
+    padding: 2px 0;
+}
+
+.my-monitoring-log-viewer .log-debug {
+    color: #9cdcfe;
+}
+
+.my-monitoring-log-viewer .log-info {
+    color: #4ec9b0;
+}
+
+.my-monitoring-log-viewer .log-warning {
+    color: #dcdcaa;
+}
+
+.my-monitoring-log-viewer .log-error {
+    color: #f48771;
+}
+
+.my-monitoring-log-viewer .log-critical {
+    color: #f48771;
+    font-weight: bold;
+}
+
+.my-monitoring-button-group {
+    margin: 15px 0;
+}
+
+.my-monitoring-button-group .button {
+    margin-right: 10px;
+}
+
+.my-monitoring-chart-container {
+    margin: 20px 0;
+    max-width: 600px;
+}
+
+.my-monitoring-health-indicator {
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin-right: 5px;
+}
+
+.my-monitoring-health-indicator.good {
+    background: #28a745;
+}
+
+.my-monitoring-health-indicator.recommended {
+    background: #ffc107;
+}
+
+.my-monitoring-health-indicator.critical {
+    background: #dc3545;
+}
+
+.my-monitoring-info-box {
+    background: #e7f3ff;
+    border-left: 4px solid #2271b1;
+    padding: 12px;
+    margin: 15px 0;
+    border-radius: 3px;
+}
+
+.my-monitoring-info-box p {
+    margin: 0;
+}

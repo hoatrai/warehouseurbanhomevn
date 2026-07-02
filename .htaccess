@@ -1,0 +1,76 @@
+# BEGIN WP Hide & Security Enhancer
+<IfModule mod_rewrite.c> 
+RewriteEngine On 
+RewriteBase / 
+#WriteCheckString:1753243354_15723
+RewriteRule ^rewrite_test_1753243354_15723/? /wp-content/plugins/wp-hide-security-enhancer/include/rewrite-confirm.php [L,QSA]
+RewriteRule ^rewrite_test_static_file_1753243354_15723/? /wp-content/plugins/wp-hide-security-enhancer/composer.json [L,QSA]
+
+RewriteCond %{REQUEST_URI} /+[^\.]+$
+RewriteCond %{REQUEST_METHOD} !POST
+RewriteRule ^(.+[^/])$ %{REQUEST_URI}/ [R=301,L]
+
+RewriteRule ^template/(.+) /wp-content/themes/woodmart/$1 [L,QSA]
+
+RewriteRule ^modules/module979/(.+) /wp-content/plugins/simple-local-avatars/$1 [L,QSA]
+RewriteRule ^modules/module482/(.+) /wp-content/plugins/wp-mail-smtp/$1 [L,QSA]
+RewriteRule ^apps/(.+) /wp-content/plugins/$1 [L,QSA]
+
+RewriteRule ^includes/(.+) /wp-includes/$1 [L,QSA]
+
+RewriteRule ^media/(.+) /wp-content/uploads/$1 [L,QSA]
+
+RewriteRule ^xmlrpc.php - [R=404]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^license.txt /index.php?wph-throw-404 [L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^readme.html /index.php?wph-throw-404 [L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^wp-activate.php /index.php?wph-throw-404 [L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^wp-signup.php /index.php?wph-throw-404 [L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^wp-register.php /index.php?wph-throw-404 [L]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteCond %{REQUEST_FILENAME} !wp-activate.php [NC]
+RewriteCond %{REQUEST_FILENAME} !wp-cron.php [NC]
+RewriteCond %{REQUEST_FILENAME} !wp-signup.php [NC]
+RewriteCond %{REQUEST_FILENAME} !wp-register.php [NC]
+RewriteCond %{REQUEST_FILENAME} !wp-comments-post.php [NC]
+RewriteCond %{REQUEST_FILENAME} !wp-login.php [NC]
+RewriteRule ^wp-([a-z-])+.php /index.php?wph-throw-404 [L]
+
+RewriteRule ^user-input.php /wp-comments-post.php [L,QSA]
+RewriteCond %{ENV:REDIRECT_STATUS} ^$
+RewriteRule ^wp-comments-post.php /index.php?wph-throw-404 [L]
+RewriteCond %{QUERY_STRING} author=\d+
+RewriteRule ^ /index.php?wph-throw-404 [L]
+
+RewriteRule ^content/(.+) /wp-content/$1 [L,QSA]
+
+RewriteRule ^dangnhap.php(.*) /wp-login.php$1 [L,QSA]
+
+RewriteCond %{REQUEST_URI} /system$
+RewriteRule ^(.*)$ /system/ [R=301,L]
+RewriteRule ^system/(.*) /wp-admin/$1 [L,QSA]
+</IfModule> 
+
+# END WP Hide & Security Enhancer
+# BEGIN WordPress
+# Các nội dung nằm giữa "BEGIN WordPress" và "END WordPress" được tạo ra tự động, và chỉ nên được thay đổi thông qua các filter của WordPress. Mọi thay đổi tới thành phần này có thể sẽ bị mất và ghi đè.
+<IfModule mod_rewrite.c>
+RewriteEngine On
+RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+RewriteBase /
+RewriteRule ^index\.php$ - [L]
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule . /index.php [L]
+</IfModule>
+
+# END WordPress
+# Block XML-RPC thật sự
+<Files "xmlrpc.php">
+    Require all denied
+</Files>

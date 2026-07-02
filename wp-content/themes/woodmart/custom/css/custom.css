@@ -1,0 +1,354 @@
+@media (max-width: 768px) {
+    /* Tổng thể input/select trong từng hàng flex */
+    div[style*="display: flex"] {
+        flex-wrap: wrap !important;
+    }
+    #exportCsv {
+        display: block !important;
+        width: 98% !important;
+        margin-bottom: 8px;
+    }
+
+    /* Các input và select trong cùng hàng: chia 50% */
+    div[style*="display: flex"] > input,
+    div[style*="display: flex"] > select {
+        width: calc(50% - 4px) !important;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+    }
+    #wp-admin-bar-site-name{
+        display:none !important;
+    }
+
+    /* Các nhóm 2 input (vd: Giá từ - đến) */
+    div[style*="display: flex"] > div {
+        flex-wrap: wrap !important;
+        width: 100% !important;
+        margin-bottom: 8px;
+    }
+
+    div[style*="display: flex"] > div > input {
+        width: calc(50% - 2px) !important;
+        box-sizing: border-box;
+    }
+
+    /* Nút bấm */
+    #btn-filter,
+    #btn-reset {
+        width: calc(50% - 4px) !important;
+        margin-bottom: 8px;
+    }
+    /* Select2 chiếm full width */
+    .select2-container {
+        width: 100% !important;
+        margin-bottom: 8px;
+        box-sizing: border-box;
+    }
+
+    .select2-selection--single {
+        height: 40px !important;
+        padding: 8px 12px;
+        display: flex;
+        align-items: center;
+        border-radius: 6px !important;
+        border: 1px solid #ccc;
+    }
+
+    .select2-selection__rendered {
+        font-size: 14px;
+        line-height: 24px !important;
+    }
+
+    .select2-selection__arrow {
+        height: 100% !important;
+    }
+
+
+
+    .header-container {
+        padding: 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        align-items: flex-start;
+    }
+
+    .header-container h1 {
+        font-size: 20px;
+        line-height: 1.2;
+        text-align: left;
+        margin: 0;
+    }
+
+    .header-container .dashicons {
+        font-size: 20px !important;
+        margin-right: 6px;
+        padding-bottom: 4px;
+    }
+
+    .header-container .button-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .header-container .button-group button,
+    .header-container .button-group .button {
+        flex: 1 1 calc(50% - 4px);
+        box-sizing: border-box;
+        padding: 10px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    #tableSelector {
+        width: 100% !important;
+        height: 40px;
+        padding: 8px 12px;
+        font-size: 14px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+        box-sizing: border-box;
+    }
+
+    .export-form {
+        flex: 1 1 calc(50% - 4px);
+    }
+
+}
+@media (max-width: 768px) {
+    .ui-jqgrid-view {
+        overflow-x: auto;
+    }
+
+    .ui-jqgrid {
+        width: 100% !important;
+    }
+
+    .ui-jqgrid-btable {
+        width: max-content !important;
+    }
+    .ui-jqgrid .ui-jqgrid-btable th,
+    .ui-jqgrid .ui-jqgrid-btable td {
+        padding: 0.75rem;
+        vertical-align: middle;
+        font-size: 14px;
+    }
+
+}
+/* Tăng khoảng cách và căn giữa pagination */
+.ui-jqgrid .ui-jqgrid-pager {
+    padding: 0.5rem 1rem;
+    background-color: #f8f9fa; /* màu xám nhạt giống Bootstrap */
+    border-top: 1px solid #dee2e6;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+}
+
+/* Các nút phân trang */
+.ui-jqgrid .ui-pg-button {
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    padding: 0.25rem 0.5rem;
+    margin: 0 2px;
+    border-radius: 0.25rem;
+    transition: 0.2s;
+}
+
+.ui-jqgrid .ui-pg-button:hover {
+    background-color: #e9ecef;
+    border-color: #ced4da;
+}
+
+/* Dropdown chọn số dòng */
+.ui-jqgrid .ui-pg-selbox {
+    padding: 0.25rem 0.5rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+}
+
+/* Ô nhập số trang */
+.ui-jqgrid .ui-pg-input {
+    width: 50px;
+    padding: 0.25rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.25rem;
+    text-align: center;
+}
+@media (max-width: 768px) {
+    .ui-jqgrid .ui-jqgrid-pager {
+        padding: 10px;
+    }
+
+    .ui-jqgrid .ui-pg-table {
+        width: 100% !important;
+        border-collapse: collapse;
+    }
+
+    .ui-jqgrid .ui-pg-table tr {
+        display: table-row;
+    }
+
+    .ui-jqgrid .ui-pg-table td {
+        display: block;
+        width: 100%;
+        text-align: center;
+        padding: 4px 0;
+    }
+
+    .ui-jqgrid .ui-pg-button,
+    .ui-jqgrid .ui-pg-input,
+    .ui-jqgrid .ui-pg-selbox {
+        width: 100% !important;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+
+    .ui-jqgrid .ui-pg-input {
+        text-align: center;
+    }
+    .ui-jqgrid .ui-pg-button {
+        width: auto !important;
+        min-width: 36px;
+        padding: 4px 8px;
+        font-size: 14px;
+        display: inline-block;
+        margin: 2px;
+    }
+    .ui-jqgrid .ui-pg-input {
+        width: 100px !important;
+        padding: 4px 6px;
+        font-size: 14px;
+        text-align: center;
+    }
+
+    .ui-jqgrid .ui-pg-selbox {
+        width: 100px !important;
+        padding: 4px 6px;
+        font-size: 14px;
+    }
+
+
+
+}
+@media (max-width: 768px) {
+    /* Cho phép scroll ngang toàn grid */
+    .ui-jqgrid {
+        overflow-x: auto;
+        width: 100% !important;
+    }
+
+    .ui-jqgrid-view {
+        overflow-x: auto;
+        width: 100% !important;
+    }
+
+    .ui-jqgrid-hdiv,
+    .ui-jqgrid-bdiv {
+        overflow-x: auto !important;
+        width: 100% !important;
+    }
+
+    .ui-jqgrid-htable,
+    .ui-jqgrid-btable {
+        min-width: 600px !important; /* hoặc lớn hơn tùy số lượng cột */
+        width: max-content !important;
+        table-layout: fixed !important;
+    }
+
+    /* Nếu header bị sai layout */
+    .ui-jqgrid-htable th {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    #createNewBtn, #deleteBtn, #exportCsv{
+        margin:2px 0px 2px 0px !important;
+    }
+    #toggle-filter-btn {
+        background-color: #e74c3c; /* đỏ tươi */
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 6px;
+        box-shadow: 0 4px 8px rgba(231, 76, 60, 0.4);
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+        display: flex;
+        align-items: center;
+        margin-bottom:5px;
+        margin-left:10px;
+    }
+
+    #toggle-filter-btn:hover {
+        background-color: #c0392b; /* đỏ đậm khi hover */
+    }
+
+    #toggle-filter-btn i {
+        font-size: 18px;
+    }
+
+
+}
+/* Ẩn filter trên màn hình nhỏ (mobile) */
+@media (max-width: 768px) {
+    #filter-wrapper {
+        display: none;
+    }
+}
+
+/* Luôn hiện trên màn hình lớn (PC) */
+@media (min-width: 769px) {
+    #filter-wrapper {
+        display: flex !important;
+    }
+}
+.avatar-wrapper {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.avatar-wrapper {
+    width: 60px;
+    aspect-ratio: 1 / 1;
+    border-radius: 50%;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .avatar-wrapper {
+        width: 40px;
+    }
+}
+
+#wp-admin-bar-wp-mail-smtp.wp-mail-smtp-admin-bar-menu-error {
+    display: none !important;
+}
+.text-mobile {
+    display: none;
+}
+.text-pc {
+    display: inline;
+}
+
+@media (max-width: 768px) {
+    .text-pc {
+        display: none;
+    }
+    .text-mobile {
+        display: inline;
+    }
+    .divnhanvien{
+        width:100% !important;
+    }
+
+}
