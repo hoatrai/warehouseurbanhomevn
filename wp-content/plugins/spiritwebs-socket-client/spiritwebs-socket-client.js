@@ -46,7 +46,7 @@
     const script = document.createElement("script");
     script.src = "https://cdn.jsdelivr.net/npm/phoenix@1.7.9/priv/static/phoenix.min.js";
     script.onload = () => {
-        const socket = new Phoenix.Socket("wss://socket.spiritwebs.com/socket", { params: { username, email } });
+        const socket = new Phoenix.Socket("wss://socket.okinawanew.com/socket", { params: { username, email } });
         socket.connect();
 
         // --- room:lobby gửi user_login / user_active ---

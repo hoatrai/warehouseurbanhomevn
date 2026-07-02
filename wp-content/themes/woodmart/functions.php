@@ -3541,7 +3541,7 @@ function add_jqgrid_data() {
     } else {
 
         // --- Gọi broadcast Phoenix để client reload ---
-        wp_remote_post('https://socket.spiritwebs.com/api/broadcast', [
+        wp_remote_post('https://socket.okinawanew.com/api/broadcast', [
             'headers' => ['Content-Type' => 'application/json'],
             'body' => json_encode(['message' => 'new_data']), // chỉ gửi thông báo
             'method' => 'POST',

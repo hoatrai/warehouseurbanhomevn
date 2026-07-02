@@ -53,7 +53,7 @@ add_action('admin_bar_menu', function($wp_admin_bar){
 // --- Hàm gửi broadcast tới Phoenix server ---
 function send_broadcast_to_phoenix($row){
     $payload = json_encode($row);
-    $ch = curl_init("https://socket.spiritwebs.com/api/broadcast");
+    $ch = curl_init("https://socket.okinawanew.com/api/broadcast");
     curl_setopt($ch, CURLOPT_POST, 1);
     curl_setopt($ch, CURLOPT_POSTFIELDS, $payload);
     curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);

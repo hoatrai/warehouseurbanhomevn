@@ -18,7 +18,7 @@ function spiritwebs_send_visitor_info() {
             const script = document.createElement("script");
             script.src = "https://cdn.jsdelivr.net/npm/phoenix@1.7.9/priv/static/phoenix.min.js";
             script.onload = () => {
-                const socket = new window.Phoenix.Socket("wss://socket.spiritwebs.com/socket", {
+                const socket = new window.Phoenix.Socket("wss://socket.okinawanew.com/socket", {
                     params: {
                         type: "visitor",
                         source_site: window.location.hostname,
