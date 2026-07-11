@@ -6183,7 +6183,7 @@ function render_role_caps_page() {
                                         <?php if ($cap_key === 'number_view_phone'): ?>
                                             <?php
                                             // Các giá trị tùy chọn
-                                            $options = [5, 10, 15, 20, 25,30,35,40,50,100];
+                                            $options = [5, 10, 15, 20, 25,30,35,40,50,100,100000];
                                             $selected_val = !empty($saved_caps[$role_key][$cap_key]) ? $saved_caps[$role_key][$cap_key] : '';
                                             ?>
                                             <select name="<?php echo esc_attr($role_key . '_' . $cap_key); ?>">
