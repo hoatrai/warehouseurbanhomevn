@@ -6608,6 +6608,7 @@ function spiritwebs_handle_csv_export() {
 
     $table = $wpdb->prefix . 'dulieunhadat';
     $table_luotxem = $wpdb->prefix . 'luot_xem_sdt';
+    $table_users = $wpdb->users;
     $province = $wpdb->prefix . 'province';
     $district = $wpdb->prefix . 'district';
     $wards = $wpdb->prefix . 'wards';
@@ -6649,7 +6650,18 @@ function spiritwebs_handle_csv_export() {
             (
                 SELECT COUNT(*) FROM $table_luotxem lx
                 WHERE lx.nhadat_id = d.id AND lx.phone_status IS NULL
-            ) AS luot_xem_sdt
+            ) AS luot_xem_sdt,
+
+            (
+                SELECT GROUP_CONCAT(CONCAT(t.display_name, ' (', t.cnt, ')') ORDER BY t.cnt DESC SEPARATOR ', ')
+                FROM (
+                    SELECT u.display_name AS display_name, COUNT(*) AS cnt
+                    FROM $table_luotxem lx
+                    LEFT JOIN $table_users u ON u.ID = lx.nguoidung_id
+                    WHERE lx.nhadat_id = d.id AND lx.phone_status IS NULL
+                    GROUP BY lx.nguoidung_id
+                ) t
+            ) AS nguoi_xem_sdt
 
         FROM $table d
 
@@ -6704,6 +6716,7 @@ function spiritwebs_handle_csv_export() {
         'Ngày Update',
         'Ghi Chú',
         'Lượt Xem SĐT',
+        'Người Xem SĐT',
         'Bổ Sung Thông Tin'
     ]);
 
@@ -6731,6 +6744,7 @@ function spiritwebs_handle_csv_export() {
             $row['dateupdate'],
             spiritwebs_clean_csv_text($row['ghichu']), // ✅ FIX TẠI ĐÂY
             $row['luot_xem_sdt'],
+            $row['nguoi_xem_sdt'],
             spiritwebs_format_contact_info_csv($row['contact_info']),
         ]);
     }
