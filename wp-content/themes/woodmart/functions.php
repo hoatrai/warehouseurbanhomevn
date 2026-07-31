@@ -3915,6 +3915,16 @@ function edit_jqgrid_data() {
         $changedData[$field] = $data[$field];
     }
 
+    // Lưu thêm giá trị CŨ/MỚI của từng trường thay đổi để hiển thị chi tiết sau này
+    $fieldChanges = [];
+    foreach ($changedFields as $field) {
+        $fieldChanges[$field] = [
+            'old' => $oldData[$field] ?? '',
+            'new' => $data[$field] ?? '',
+        ];
+    }
+    $changedData['field_changes'] = $fieldChanges;
+
     $avatar_meta_his = get_user_meta($current_user->ID, 'simple_local_avatar', true);
     $user_avatar_url = !empty($avatar_meta_his['full'])
         ? $avatar_meta_his['full']
@@ -4726,11 +4736,34 @@ function render_user_view_property_chart() {
     $history_table = $wpdb->prefix . 'dulieunhadat_history';
 
     $dulieunha_raw = $wpdb->get_results("
-        SELECT record_id, changed_fields, userupdate, dateupdate
+        SELECT record_id, changed_fields, userupdate, dateupdate, data
         FROM {$history_table}
         WHERE YEARWEEK(dateupdate, 1) = YEARWEEK(NOW(), 1)
         ORDER BY dateupdate DESC
     ");
+
+    // Tên trường hiển thị thân thiện (fallback: tự format từ tên cột)
+    $field_labels = [
+        'tieu_de'            => 'Tiêu đề',
+        'tom_tat'            => 'Mô tả',
+        'gia'                => 'Giá',
+        'dien_tich'          => 'Diện tích',
+        'diachi'             => 'Địa chỉ',
+        'dia_chi'            => 'Địa chỉ',
+        'tinhtranggiaodich'  => 'Tình trạng giao dịch',
+        'name'               => 'Tên liên hệ',
+        'dienthoaididong'    => 'Số điện thoại',
+        'vaitro'             => 'Vai trò',
+        'gioitinh'           => 'Giới tính',
+    ];
+
+    // Format giá trị hiển thị: số thì thêm dấu chấm ngăn cách, chuỗi dài thì cắt bớt
+    $format_value = function ($val) {
+        $val = trim((string) $val);
+        if ($val === '') return '(trống)';
+        if (is_numeric($val)) return number_format((float) $val, 0, ',', '.');
+        return mb_strlen($val) > 40 ? mb_substr($val, 0, 40) . '...' : $val;
+    };
 
     $note_count_by_user = [];
     $note_ids_by_user = [];
@@ -4742,10 +4775,28 @@ function render_user_view_property_chart() {
         $note_ids_by_user[$uid][] = $row->record_id;
 
         $time_text = date('d/m H:i', strtotime($row->dateupdate));
-        $fields = trim((string) $row->changed_fields) !== ''
-            ? str_replace(',', ', ', $row->changed_fields)
-            : 'không rõ trường';
-        $note_detail_by_user[$uid][] = "{$time_text} - NĐ#{$row->record_id}: sửa {$fields}";
+
+        $unserialized = !empty($row->data) ? maybe_unserialize($row->data) : [];
+        $field_changes = (is_array($unserialized) && !empty($unserialized['field_changes']))
+            ? $unserialized['field_changes']
+            : [];
+
+        if (!empty($field_changes)) {
+            $change_lines = [];
+            foreach ($field_changes as $field => $vals) {
+                $label = $field_labels[$field] ?? ucfirst(str_replace('_', ' ', $field));
+                $old_val = $format_value($vals['old'] ?? '');
+                $new_val = $format_value($vals['new'] ?? '');
+                $change_lines[] = "{$label}: {$old_val} → {$new_val}";
+            }
+            $note_detail_by_user[$uid][] = "{$time_text} - NĐ#{$row->record_id}:\n   " . implode("\n   ", $change_lines);
+        } else {
+            // Dữ liệu lịch sử cũ (trước khi có field_changes) chỉ có tên trường, không có giá trị cũ/mới
+            $fields = trim((string) $row->changed_fields) !== ''
+                ? str_replace(',', ', ', $row->changed_fields)
+                : 'không rõ trường';
+            $note_detail_by_user[$uid][] = "{$time_text} - NĐ#{$row->record_id}: sửa {$fields}";
+        }
     }
 
     // Gộp danh sách nhân viên có sửa dữ liệu nhà (nhưng chưa có trong $user_data) vào chung
