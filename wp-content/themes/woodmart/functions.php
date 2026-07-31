@@ -4722,6 +4722,33 @@ function render_user_view_property_chart() {
         $phone_update_detail[$uid][] = $line;
     }
 
+    // Bổ xung thông tin nhà: lấy từ lịch sử chỉnh sửa dữ liệu nhà đất (wp_dulieunhadat_history)
+    $history_table = $wpdb->prefix . 'dulieunhadat_history';
+
+    $dulieunha_raw = $wpdb->get_results("
+        SELECT record_id, changed_fields, userupdate, dateupdate
+        FROM {$history_table}
+        WHERE YEARWEEK(dateupdate, 1) = YEARWEEK(NOW(), 1)
+        ORDER BY dateupdate DESC
+    ");
+
+    $note_count_by_user = [];
+    $note_ids_by_user = [];
+    $note_detail_by_user = [];
+
+    foreach ($dulieunha_raw as $row) {
+        $uid = (int) $row->userupdate;
+        $note_count_by_user[$uid] = ($note_count_by_user[$uid] ?? 0) + 1;
+        $note_ids_by_user[$uid][] = $row->record_id;
+
+        $time_text = date('d/m H:i', strtotime($row->dateupdate));
+        $fields = trim((string) $row->changed_fields) !== ''
+            ? str_replace(',', ', ', $row->changed_fields)
+            : 'không rõ trường';
+        $note_detail_by_user[$uid][] = "{$time_text} - NĐ#{$row->record_id}: sửa {$fields}";
+    }
+
+    // Gộp danh sách nhân viên có sửa dữ liệu nhà (nhưng chưa có trong $user_data) vào chung
     $user_data = [];
     foreach ($raw_results as $row) {
         $user_id = $row->nguoidung_id;
@@ -4748,6 +4775,20 @@ function render_user_view_property_chart() {
         if ($phone_count > 0) $user_data[$user_id]['nhadat_ids']['phone'][] = $nhadat_id;
     }
 
+    foreach ($note_count_by_user as $uid => $cnt) {
+        if (!isset($user_data[$uid])) {
+            $user_data[$uid] = [
+                'view' => 0,
+                'phone' => 0,
+                'nhadat_ids' => [
+                    'view' => [],
+                    'phone' => [],
+                ],
+            ];
+        }
+        $user_data[$uid]['note'] = $cnt;
+    }
+
     if (empty($user_data)) {
         echo '<p>Không có dữ liệu để hiển thị.</p>';
         return;
@@ -4756,11 +4797,14 @@ function render_user_view_property_chart() {
     $labels = [];
     $views = [];
     $phones = [];
+    $notes = [];
     $view_percentages = [];
     $phone_percentages = [];
+    $note_percentages = [];
     $products_view = [];
     $products_phone = [];
     $products_phone_detail = [];
+    $products_note_detail = [];
 
     foreach ($user_data as $user_id => $data) {
         $user_info = get_userdata($user_id);
@@ -4768,18 +4812,25 @@ function render_user_view_property_chart() {
             $label = "{$user_info->user_login} (NV: {$user_info->ID})";
             $labels[] = $label;
 
+            $note_count = $data['note'] ?? 0;
+
             $xem_thuong = max(0, $data['view'] - $data['phone']);
             $views[] = $xem_thuong;
             $phones[] = $data['phone'];
+            $notes[] = $note_count;
 
-            $tong = max($xem_thuong + $data['phone'], 1);
+            $tong = max($xem_thuong + $data['phone'] + $note_count, 1);
             $view_percentages[] = round(($xem_thuong / $tong) * 100, 1);
             $phone_percentages[] = round(($data['phone'] / $tong) * 100, 1);
+            $note_percentages[] = round(($note_count / $tong) * 100, 1);
 
             $products_view[] = implode(', ', array_unique($data['nhadat_ids']['view']));
             $products_phone[] = implode(', ', array_unique($data['nhadat_ids']['phone']));
             $products_phone_detail[] = isset($phone_update_detail[$user_id])
                 ? implode("\n", $phone_update_detail[$user_id])
+                : '';
+            $products_note_detail[] = isset($note_detail_by_user[$user_id])
+                ? implode("\n", $note_detail_by_user[$user_id])
                 : '';
         }
     }
@@ -4795,6 +4846,11 @@ function render_user_view_property_chart() {
         'label' => 'Cập nhật tình trạng số điện thoại',
         'data' => $phones,
         'backgroundColor' => 'rgba(75, 192, 192, 0.8)'
+    ];
+    $chart_datasets[] = [
+        'label' => 'Bổ xung thông tin nhà',
+        'data' => $notes,
+        'backgroundColor' => 'rgba(255, 159, 64, 0.8)'
     ];
     ?>
 
@@ -4841,9 +4897,11 @@ function render_user_view_property_chart() {
 
             const viewPercents = <?php echo json_encode($can_view_phone_stat ? $view_percentages : []); ?>;
             const phonePercents = <?php echo json_encode($phone_percentages); ?>;
+            const notePercents = <?php echo json_encode($note_percentages); ?>;
 
             const productsView = <?php echo json_encode($can_view_phone_stat ? $products_view : []); ?>;
             const phoneUpdateDetail = <?php echo json_encode($products_phone_detail); ?>;
+            const noteUpdateDetail = <?php echo json_encode($products_note_detail); ?>;
 
             new Chart(ctx, {
                 type: 'bar',
@@ -4866,6 +4924,7 @@ function render_user_view_property_chart() {
 
             if (label === 'Xem số điện thoại') percent = viewPercents[i];
             else if (label === 'Cập nhật tình trạng số điện thoại') percent = phonePercents[i];
+            else if (label === 'Bổ xung thông tin nhà') percent = notePercents[i];
 
             return `${label}: ${val} lượt (${percent}%)`;
         },
@@ -4877,6 +4936,12 @@ function render_user_view_property_chart() {
                     const detail = phoneUpdateDetail[i];
                     if (!detail) return ['Chưa có cập nhật nào'];
                     return ['Chi tiết cập nhật:', ...detail.split('\n')];
+                }
+
+                if (label === 'Bổ xung thông tin nhà') {
+                    const detail = noteUpdateDetail[i];
+                    if (!detail) return ['Chưa có chỉnh sửa nào'];
+                    return ['Chi tiết chỉnh sửa:', ...detail.split('\n')];
                 }
 
                 const products = productsView[i];
