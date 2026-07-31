@@ -4669,6 +4669,7 @@ add_action( 'wp_dashboard_setup', 'add_user_data_entry_chart_to_dashboard' );
 function render_user_view_property_chart() {
     global $wpdb;
     $table_name = $wpdb->prefix . 'luot_xem_sdt';
+    $can_view_phone_stat = current_user_can('administrator');
 
     echo '<style>
         #user_view_property_chart {
@@ -4684,10 +4685,10 @@ function render_user_view_property_chart() {
             nguoidung_id, 
             nhadat_id,
             COUNT(*) AS tong_xem,
-            SUM(CASE WHEN phone_status = 1 THEN 1 ELSE 0 END) AS da_xem_so,
+            SUM(CASE WHEN phone_status IS NOT NULL THEN 1 ELSE 0 END) AS da_xem_so,
             SUM(CASE WHEN note IS NOT NULL AND TRIM(note) != '' THEN 1 ELSE 0 END) AS co_note
         FROM {$table_name}
-        WHERE thoi_gian >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+        WHERE YEARWEEK(thoi_gian, 1) = YEARWEEK(NOW(), 1)
         GROUP BY nguoidung_id, nhadat_id
     ");
 
@@ -4716,7 +4717,7 @@ function render_user_view_property_chart() {
         $user_data[$user_id]['phone'] += $phone_count;
         $user_data[$user_id]['note'] += $note_count;
 
-        $view_thuong = $tong_xem - $phone_count - $note_count;
+        $view_thuong = $tong_xem - $phone_count;
         if ($view_thuong > 0) $user_data[$user_id]['nhadat_ids']['view'][] = $nhadat_id;
         if ($phone_count > 0) $user_data[$user_id]['nhadat_ids']['phone'][] = $nhadat_id;
         if ($note_count > 0) $user_data[$user_id]['nhadat_ids']['note'][] = $nhadat_id;
@@ -4744,7 +4745,7 @@ function render_user_view_property_chart() {
             $label = "{$user_info->user_login} (NV: {$user_info->ID})";
             $labels[] = $label;
 
-            $xem_thuong = max(0, $data['view'] - $data['phone'] - $data['note']);
+            $xem_thuong = max(0, $data['view'] - $data['phone']);
             $views[] = $xem_thuong;
             $phones[] = $data['phone'];
             $notes[] = $data['note'];
@@ -4759,6 +4760,24 @@ function render_user_view_property_chart() {
             $products_note[] = implode(', ', array_unique($data['nhadat_ids']['note']));
         }
     }
+    $chart_datasets = [];
+    if ($can_view_phone_stat) {
+        $chart_datasets[] = [
+            'label' => 'Xem số điện thoại',
+            'data' => $views,
+            'backgroundColor' => 'rgba(239, 68, 68, 0.8)'
+        ];
+    }
+    $chart_datasets[] = [
+        'label' => 'Cập nhật tình trạng số điện thoại',
+        'data' => $phones,
+        'backgroundColor' => 'rgba(75, 192, 192, 0.8)'
+    ];
+    $chart_datasets[] = [
+        'label' => 'Bổ xung thông tin nhà',
+        'data' => $notes,
+        'backgroundColor' => 'rgba(255, 159, 64, 0.8)'
+    ];
     ?>
 
 
@@ -4802,11 +4821,11 @@ function render_user_view_property_chart() {
         document.addEventListener("DOMContentLoaded", function () {
             const ctx = document.getElementById('user-view-chart').getContext('2d');
 
-            const viewPercents = <?php echo json_encode($view_percentages); ?>;
+            const viewPercents = <?php echo json_encode($can_view_phone_stat ? $view_percentages : []); ?>;
             const phonePercents = <?php echo json_encode($phone_percentages); ?>;
             const notePercents = <?php echo json_encode($note_percentages); ?>;
 
-            const productsView = <?php echo json_encode($products_view); ?>;
+            const productsView = <?php echo json_encode($can_view_phone_stat ? $products_view : []); ?>;
             const productsPhone = <?php echo json_encode($products_phone); ?>;
             const productsNote = <?php echo json_encode($products_note); ?>;
 
@@ -4814,23 +4833,7 @@ function render_user_view_property_chart() {
                 type: 'bar',
                 data: {
                     labels: <?php echo json_encode($labels); ?>,
-                    datasets: [
-                        {
-                            label: 'Xem số điện thoại',
-                            data: <?php echo json_encode($views); ?>,
-                            backgroundColor: 'rgba(239, 68, 68, 0.8)'
-                        },
-                        {
-                            label: 'Cập nhật tình trạng số điện thoại',
-                            data: <?php echo json_encode($phones); ?>,
-                            backgroundColor: 'rgba(75, 192, 192, 0.8)'
-                        },
-                        {
-                            label: 'Bổ xung thông tin nhà',
-                            data: <?php echo json_encode($notes); ?>,
-                            backgroundColor: 'rgba(255, 159, 64, 0.8)'
-                        }
-                    ]
+                    datasets: <?php echo json_encode($chart_datasets); ?>
                 },
                 options: {
                     responsive: true,
@@ -4928,7 +4931,7 @@ function custom_dashboard_product_stats() {
     );
     wp_add_dashboard_widget(
         'user_view_property_chart',
-        'Thống Kê Xem Số Điện Thoại Trong 7 Ngày Qua',
+        'Thống Kê Xem Số Điện Thoại Trong Tuần Này',
         'render_user_view_property_chart'
     );
 
@@ -8678,16 +8681,3 @@ add_action('delete_user', function($user_id) {
     );
 
 }, 10, 1);
-
-
-
-
-
-
-
-
-
-
-
-
-
