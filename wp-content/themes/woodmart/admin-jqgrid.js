@@ -1999,7 +1999,7 @@ jQuery(document).ready(function ($) {
         <a href="javascript:void(0)" class="show-phone-popup"
             data-phone="${c.phone || ''}"
             data-nhadat-id="${rowData.id || ''}"
-            data-user="${rowData.user || ''}"
+            data-user="${ajax_object.current_user_id || ''}"
             data-name="${c.name || ''}"
             data-role="${roleName}"
             style="color:#007bff; text-decoration:none; font-size:13px;">
@@ -2765,7 +2765,7 @@ jQuery(document).ready(function ($) {
                                                             ? '<a href="javascript:void(0)" class="show-phone-popup" ' +
                                                             'data-phone="' + rowData2.dienthoaididong + '" ' +
                                                             'data-nhadat-id="' + rowData2.id + '" ' +
-                                                            'data-user="' + rowData2.user + '" ' +
+                                                            'data-user="' + ajax_object.current_user_id + '" ' +
                                                             'data-name="' + rowData2.name + '" ' +
                                                             'data-role="' + (rowData2.vaitro_name || '') + '" ' +
                                                             'style="color: #007bff; text-decoration: none; font-size: 14px; display: inline-flex; gap: 4px;">' +
@@ -2799,7 +2799,7 @@ jQuery(document).ready(function ($) {
                                                                                 ? '<a href="javascript:void(0)" class="show-phone-popup" ' +
                                                                                 'data-phone="' + item.phone_more + '" ' +
                                                                                 'data-nhadat-id="' + rowData2.id + '" ' +
-                                                                                'data-user="' + rowData2.user + '" ' +
+                                                                                'data-user="' + ajax_object.current_user_id + '" ' +
                                                                                 'data-name="' + item.name_more + '" ' +
                                                                                 'data-role="' + (item.vaitro_more_name || '') + '" ' +
                                                                                 'style="color: #007bff; text-decoration: none; display: inline-flex; align-items: center; gap: 4px;">' +

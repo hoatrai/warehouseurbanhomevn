@@ -460,6 +460,7 @@ function my_custom_admin_scripts($hook) {
         'can_delete'  => function_exists('spiritwebs_user_can') && spiritwebs_user_can('delete_data'),
         'can_view'  => function_exists('spiritwebs_user_can') && spiritwebs_user_can('view_data'),
         'is_admin' => current_user_can('administrator'),
+        'current_user_id' => get_current_user_id(), // 👈 thêm dòng này
     ));
 }
 
