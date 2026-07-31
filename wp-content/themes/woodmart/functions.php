@@ -7529,7 +7529,9 @@ function handle_save_phone_status() {
 
     // Kiểm tra và lấy dữ liệu POST
     $nhadat_id = isset($_POST['nhadat_id']) ? intval($_POST['nhadat_id']) : 0;
-    $nguoidung_id = isset($_POST['nguoidung_id']) ? intval($_POST['nguoidung_id']) : 0;
+    // ⚠️ KHÔNG dùng nguoidung_id do client gửi lên (dễ bị sai/cũ) — luôn lấy trực tiếp
+    // từ phiên đăng nhập hiện tại trên server để đảm bảo report đúng người thao tác.
+    $nguoidung_id = get_current_user_id();
     $phone_status = isset($_POST['phonestatus']) ? intval($_POST['phonestatus']) : 0;
     $note = isset($_POST['note']) ? sanitize_textarea_field($_POST['note']) : '';
     $ip = $_SERVER['REMOTE_ADDR'];
