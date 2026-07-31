@@ -4685,8 +4685,7 @@ function render_user_view_property_chart() {
             nguoidung_id, 
             nhadat_id,
             COUNT(*) AS tong_xem,
-            SUM(CASE WHEN phone_status IS NOT NULL THEN 1 ELSE 0 END) AS da_xem_so,
-            SUM(CASE WHEN note IS NOT NULL AND TRIM(note) != '' THEN 1 ELSE 0 END) AS co_note
+            SUM(CASE WHEN phone_status IS NOT NULL THEN 1 ELSE 0 END) AS da_xem_so
         FROM {$table_name}
         WHERE YEARWEEK(thoi_gian, 1) = YEARWEEK(NOW(), 1)
         GROUP BY nguoidung_id, nhadat_id
@@ -4729,29 +4728,24 @@ function render_user_view_property_chart() {
         $nhadat_id = $row->nhadat_id;
         $tong_xem = (int) $row->tong_xem;
         $phone_count = (int) $row->da_xem_so;
-        $note_count = (int) $row->co_note;
 
         if (!isset($user_data[$user_id])) {
             $user_data[$user_id] = [
                 'view' => 0,
                 'phone' => 0,
-                'note' => 0,
                 'nhadat_ids' => [
                     'view' => [],
                     'phone' => [],
-                    'note' => []
                 ],
             ];
         }
 
         $user_data[$user_id]['view'] += $tong_xem;
         $user_data[$user_id]['phone'] += $phone_count;
-        $user_data[$user_id]['note'] += $note_count;
 
         $view_thuong = $tong_xem - $phone_count;
         if ($view_thuong > 0) $user_data[$user_id]['nhadat_ids']['view'][] = $nhadat_id;
         if ($phone_count > 0) $user_data[$user_id]['nhadat_ids']['phone'][] = $nhadat_id;
-        if ($note_count > 0) $user_data[$user_id]['nhadat_ids']['note'][] = $nhadat_id;
     }
 
     if (empty($user_data)) {
@@ -4762,13 +4756,10 @@ function render_user_view_property_chart() {
     $labels = [];
     $views = [];
     $phones = [];
-    $notes = [];
     $view_percentages = [];
     $phone_percentages = [];
-    $note_percentages = [];
     $products_view = [];
     $products_phone = [];
-    $products_note = [];
     $products_phone_detail = [];
 
     foreach ($user_data as $user_id => $data) {
@@ -4780,16 +4771,13 @@ function render_user_view_property_chart() {
             $xem_thuong = max(0, $data['view'] - $data['phone']);
             $views[] = $xem_thuong;
             $phones[] = $data['phone'];
-            $notes[] = $data['note'];
 
-            $tong = max($xem_thuong + $data['phone'] + $data['note'], 1);
+            $tong = max($xem_thuong + $data['phone'], 1);
             $view_percentages[] = round(($xem_thuong / $tong) * 100, 1);
             $phone_percentages[] = round(($data['phone'] / $tong) * 100, 1);
-            $note_percentages[] = round(($data['note'] / $tong) * 100, 1);
 
             $products_view[] = implode(', ', array_unique($data['nhadat_ids']['view']));
             $products_phone[] = implode(', ', array_unique($data['nhadat_ids']['phone']));
-            $products_note[] = implode(', ', array_unique($data['nhadat_ids']['note']));
             $products_phone_detail[] = isset($phone_update_detail[$user_id])
                 ? implode("\n", $phone_update_detail[$user_id])
                 : '';
@@ -4807,11 +4795,6 @@ function render_user_view_property_chart() {
         'label' => 'Cập nhật tình trạng số điện thoại',
         'data' => $phones,
         'backgroundColor' => 'rgba(75, 192, 192, 0.8)'
-    ];
-    $chart_datasets[] = [
-        'label' => 'Bổ xung thông tin nhà',
-        'data' => $notes,
-        'backgroundColor' => 'rgba(255, 159, 64, 0.8)'
     ];
     ?>
 
@@ -4858,11 +4841,8 @@ function render_user_view_property_chart() {
 
             const viewPercents = <?php echo json_encode($can_view_phone_stat ? $view_percentages : []); ?>;
             const phonePercents = <?php echo json_encode($phone_percentages); ?>;
-            const notePercents = <?php echo json_encode($note_percentages); ?>;
 
             const productsView = <?php echo json_encode($can_view_phone_stat ? $products_view : []); ?>;
-            const productsPhone = <?php echo json_encode($products_phone); ?>;
-            const productsNote = <?php echo json_encode($products_note); ?>;
             const phoneUpdateDetail = <?php echo json_encode($products_phone_detail); ?>;
 
             new Chart(ctx, {
@@ -4886,7 +4866,6 @@ function render_user_view_property_chart() {
 
             if (label === 'Xem số điện thoại') percent = viewPercents[i];
             else if (label === 'Cập nhật tình trạng số điện thoại') percent = phonePercents[i];
-            else if (label === 'Bổ xung thông tin nhà') percent = notePercentages[i];
 
             return `${label}: ${val} lượt (${percent}%)`;
         },
@@ -4900,10 +4879,7 @@ function render_user_view_property_chart() {
                     return ['Chi tiết cập nhật:', ...detail.split('\n')];
                 }
 
-                let products = '';
-                if (label === 'Xem số điện thoại') products = productsView[i];
-                else if (label === 'Bổ xung thông tin nhà') products = productsNote[i];
-
+                const products = productsView[i];
                 const wrapped = products?.match(/.{1,40}/g) || ['Không có sản phẩm'];
                 return ['Sản phẩm:', ...wrapped];
             }
