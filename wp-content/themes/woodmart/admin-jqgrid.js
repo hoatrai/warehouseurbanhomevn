@@ -1,4 +1,3 @@
-
 document.addEventListener("DOMContentLoaded", function () {
     // Chỉ chạy nếu là mobile
     if (window.innerWidth > 768) return;
@@ -27,6 +26,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
 jQuery(document).ready(function ($) {
     window.justAdded = false;
+    window.justEditedRowId = false; // Lưu id dòng vừa sửa để highlight sau khi popup đóng & grid reload
 
     function setupAutoCalc() {
         const $ngang = $('#dtd_ngang');
@@ -715,83 +715,83 @@ jQuery(document).ready(function ($) {
             }, 10);
 
 
-                $('#filter-tenduan').select2({
-                    placeholder: 'Chọn tên dự án',
-                    allowClear: true,
-                    width: '200px',
-                    multiple: true,          // ✅ cho phép chọn nhiều
-                    closeOnSelect: false,    // ✅ không đóng dropdown khi chọn
-                    ajax: {
-                        url: ajaxurl,
-                        method: "POST",
-                        dataType: 'json',
-                        delay: 250,
-                        data: function (params) {
-                            return {
-                                action: 'get_duan_list',
-                                keyword: params.term || '' // Gửi từ khóa tìm kiếm
-                            };
-                        },
-                        processResults: function (response) {
-                            return {
-                                results: response.data || []
-                            };
-                        },
-                        cache: false
-                    }
+            $('#filter-tenduan').select2({
+                placeholder: 'Chọn tên dự án',
+                allowClear: true,
+                width: '200px',
+                multiple: true,          // ✅ cho phép chọn nhiều
+                closeOnSelect: false,    // ✅ không đóng dropdown khi chọn
+                ajax: {
+                    url: ajaxurl,
+                    method: "POST",
+                    dataType: 'json',
+                    delay: 250,
+                    data: function (params) {
+                        return {
+                            action: 'get_duan_list',
+                            keyword: params.term || '' // Gửi từ khóa tìm kiếm
+                        };
+                    },
+                    processResults: function (response) {
+                        return {
+                            results: response.data || []
+                        };
+                    },
+                    cache: false
+                }
+            });
+
+            setTimeout(function () {
+                const $container = $('#filter-tenduan').next('.select2-container');
+
+                // Selection multiple (khung ngoài)
+                $container.find('.select2-selection--multiple').css({
+                    'min-height': '22px',        // ⬇ thấp hơn nữa
+                    'padding': '1px 3px',        // ⬇ giảm padding
+                    'border-radius': '4px',
+                    'border': '1px solid #ccc',
+                    'display': 'flex',
+                    'align-items': 'center',
+                    'box-sizing': 'border-box'
                 });
 
-                setTimeout(function () {
-                    const $container = $('#filter-tenduan').next('.select2-container');
+                // Rendered wrapper (chạy ngang)
+                $container.find('.select2-selection__rendered').css({
+                    'display': 'flex',
+                    'flex-direction': 'row',
+                    'flex-wrap': 'nowrap',
+                    'align-items': 'center',
+                    'gap': '3px',
+                    'padding': '0',
+                    'margin': '0',
+                    'overflow-x': 'auto'
+                });
 
-                    // Selection multiple (khung ngoài)
-                    $container.find('.select2-selection--multiple').css({
-                        'min-height': '22px',        // ⬇ thấp hơn nữa
-                        'padding': '1px 3px',        // ⬇ giảm padding
-                        'border-radius': '4px',
-                        'border': '1px solid #ccc',
-                        'display': 'flex',
-                        'align-items': 'center',
-                        'box-sizing': 'border-box'
-                    });
+                // Choice tag
+                $container.find('.select2-selection__choice').css({
+                    'display': 'inline-flex',
+                    'width': 'auto',
+                    'margin': '0',
+                    'padding': '5px 5px',          // ⬇ mỏng lại
+                    'font-size': '6px',       // ⬇ nhỏ font
+                    'line-height': '14px',       // ⬇ thấp
+                    'white-space': 'nowrap',
+                    'border-radius': '3px'
+                });
 
-                    // Rendered wrapper (chạy ngang)
-                    $container.find('.select2-selection__rendered').css({
-                        'display': 'flex',
-                        'flex-direction': 'row',
-                        'flex-wrap': 'nowrap',
-                        'align-items': 'center',
-                        'gap': '3px',
-                        'padding': '0',
-                        'margin': '0',
-                        'overflow-x': 'auto'
-                    });
-
-                    // Choice tag
-                    $container.find('.select2-selection__choice').css({
-                        'display': 'inline-flex',
-                        'width': 'auto',
-                        'margin': '0',
-                        'padding': '5px 5px',          // ⬇ mỏng lại
-                        'font-size': '6px',       // ⬇ nhỏ font
-                        'line-height': '14px',       // ⬇ thấp
-                        'white-space': 'nowrap',
-                        'border-radius': '3px'
-                    });
-
-                    // Input search
-                    $container.find('.select2-search__field').css({
-                        'margin': '0',
-                        'height': '14px',
-                        'line-height': '14px',
-                        'font-size': '14px',
-                        'min-width': '30px',
-                        'padding-left': '8px',    // ✅ thêm dòng này
-                        'padding-top': '4px'     // ✅ thêm dòng này
-                    });
+                // Input search
+                $container.find('.select2-search__field').css({
+                    'margin': '0',
+                    'height': '14px',
+                    'line-height': '14px',
+                    'font-size': '14px',
+                    'min-width': '30px',
+                    'padding-left': '8px',    // ✅ thêm dòng này
+                    'padding-top': '4px'     // ✅ thêm dòng này
+                });
 
 
-                }, 10);
+            }, 10);
             // 👉 Thu nhỏ font khi đã select
             function forceCompactFont() {
                 const $container = $('#filter-tenduan').next('.select2-container');
@@ -849,35 +849,35 @@ jQuery(document).ready(function ($) {
 
 // Sau khi khởi tạo, áp CSS trực tiếp để fix chiều cao
             /*setTimeout(function() {
-                const $container = $('#filter-tenduan').next('.select2-container');
-                $container.find('.select2-selection--single').css({
-                    'height': '40px',
-                    'line-height': '40px',
-                    'padding': '0 12px',
-                    'border-radius': '6px',
-                    'border': '1px solid #ccc',
-                    'box-shadow': '1px 1px 4px rgba(0,0,0,0.1)',
-                    'display': 'flex',
-                    'align-items': 'center',
-                    'box-sizing': 'border-box',
-                    'font-size': '14px'
-                });
-                $container.find('.select2-selection__rendered').css({
-                    'line-height': '40px',
-                    'padding-left': '0',
-                    'margin': '0',
-                    'display': 'flex',
-                    'align-items': 'center',
-                    'height': '100%'
-                });
-                $container.find('.select2-selection__arrow').css({
-                    'height': '40px',
-                    'top': '0',
-                    'right': '8px',
-                    'display': 'flex',
-                    'align-items': 'center'
-                });
-            }, 10);*/
+             const $container = $('#filter-tenduan').next('.select2-container');
+             $container.find('.select2-selection--single').css({
+             'height': '40px',
+             'line-height': '40px',
+             'padding': '0 12px',
+             'border-radius': '6px',
+             'border': '1px solid #ccc',
+             'box-shadow': '1px 1px 4px rgba(0,0,0,0.1)',
+             'display': 'flex',
+             'align-items': 'center',
+             'box-sizing': 'border-box',
+             'font-size': '14px'
+             });
+             $container.find('.select2-selection__rendered').css({
+             'line-height': '40px',
+             'padding-left': '0',
+             'margin': '0',
+             'display': 'flex',
+             'align-items': 'center',
+             'height': '100%'
+             });
+             $container.find('.select2-selection__arrow').css({
+             'height': '40px',
+             'top': '0',
+             'right': '8px',
+             'display': 'flex',
+             'align-items': 'center'
+             });
+             }, 10);*/
 
 
             // phan khach hang
@@ -1064,7 +1064,7 @@ jQuery(document).ready(function ($) {
             console.error("Failed to fetch table list");
         }
 
-});
+    });
 
     // Function to load
     function loadGrid(selectedTable) {
@@ -1270,7 +1270,7 @@ jQuery(document).ready(function ($) {
                     forceFit: false,  // Allow full width of columns
                     height: "100%",
                     pager: "#jqGridPager",
-                   // rowList: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 100000000],
+                    // rowList: [10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 100000000],
                     // recordtext: "Hiển thị {0} - {1} của {2}",
                     recordtext: "urbanhome.vn",
                     pgtext: "Trang {0}",
@@ -1309,24 +1309,24 @@ jQuery(document).ready(function ($) {
                                     });
 
                                     // Gọi AJAX check/update contact_all
-                                   /* $.ajax({
-                                        url: ajax_object.ajaxurl,
-                                        type: "POST",
-                                        dataType: "json",
-                                        data: {
-                                            action: "check_update_contact_all",
-                                            row_id: rowId
-                                        },
-                                        success: function(res) {
-                                            if (res.success) {
-                                                console.log("✅ contact_all đã được check/update");
-                                                // reload lại dữ liệu từ server
-                                                $("#jqGrid").trigger("reloadGrid");
-                                            } else {
-                                                console.warn("⚠ Không update contact_all:", res.data);
-                                            }
-                                        }
-                                    });*/
+                                    /* $.ajax({
+                                     url: ajax_object.ajaxurl,
+                                     type: "POST",
+                                     dataType: "json",
+                                     data: {
+                                     action: "check_update_contact_all",
+                                     row_id: rowId
+                                     },
+                                     success: function(res) {
+                                     if (res.success) {
+                                     console.log("✅ contact_all đã được check/update");
+                                     // reload lại dữ liệu từ server
+                                     $("#jqGrid").trigger("reloadGrid");
+                                     } else {
+                                     console.warn("⚠ Không update contact_all:", res.data);
+                                     }
+                                     }
+                                     });*/
 
 
 
@@ -2029,7 +2029,7 @@ jQuery(document).ready(function ($) {
 
 
 
-                                                +
+                                                    +
 
                                                     '</div></div>'+
 
@@ -2411,7 +2411,7 @@ jQuery(document).ready(function ($) {
 
                                                 let changedHtml = changedFields.map(field => {
                                                         if (field === "contact_info" || field ==="contact_all") return '';
-                                                        let textField = field + '_text';
+                                                let textField = field + '_text';
                                                 let value = 'N/A';
 
                                                 if (item.data) {
@@ -3601,6 +3601,43 @@ jQuery(document).ready(function ($) {
                         }, 100);
                         }
 
+                        if (window.justEditedRowId) {
+                            var editedId = window.justEditedRowId;
+                            // Đợi 1 chút để DOM render xong sau khi reload
+                            setTimeout(function () {
+                                var $grid = $("#jqGrid");
+                                // jqGrid escape id cho selector nếu có ký tự đặc biệt
+                                var $row = $grid.find("#" + $.escapeSelector(String(editedId)));
+
+                                if ($row.length) {
+                                    // Chọn dòng để có hiệu ứng highlight giống như đang hover/chọn
+                                    $grid.jqGrid('setSelection', editedId, false);
+
+                                    // Cuộn grid tới đúng dòng vừa sửa (nếu dòng nằm ngoài vùng nhìn thấy)
+                                    var $bdiv = $grid.closest('.ui-jqgrid').find('.ui-jqgrid-bdiv');
+                                    if ($bdiv.length) {
+                                        var rowTop = $row.position().top + $bdiv.scrollTop();
+                                        var target = rowTop - ($bdiv.height() / 2) + ($row.outerHeight() / 2);
+                                        $bdiv.animate({ scrollTop: Math.max(target, 0) }, 300);
+                                    }
+
+                                    // Nháy màu nhẹ để dễ nhận biết đúng dòng vừa sửa
+                                    $row.css({
+                                        "background-color": "",
+                                        "transition": "background-color 1s ease"
+                                    });
+                                    requestAnimationFrame(function () {
+                                        $row.css("background-color", "#fff59d");
+                                        setTimeout(function () {
+                                            $row.css("background-color", "");
+                                        }, 2000);
+                                    });
+                                } else {
+                                    console.warn("⚠️ Không tìm thấy dòng vừa sửa để highlight (id: " + editedId + ")");
+                                }
+                                window.justEditedRowId = false; // reset cờ
+                            }, 150);
+                        }
 
 
                         $(".ui-pg-selbox").css({
@@ -3767,6 +3804,7 @@ jQuery(document).ready(function ($) {
 
                         },
                         closeAfterEdit:true,
+                        reloadAfterSubmit: true,
                         closeOnEscape: true,
                         onClose: function () {
                             $(".select2-dropdown").hide();
@@ -5287,6 +5325,8 @@ jQuery(document).ready(function ($) {
 
                                 if (res.success) {
                                     alert("✅ Cập nhật thành công!");
+                                    // Ghi nhớ dòng vừa sửa để loadComplete highlight lại sau khi grid reload
+                                    window.justEditedRowId = rowId;
                                     return [true, "", res.id]; // success
                                 } else {
                                     alert("❌ Lỗi: " + (res.data || "Không rõ lỗi"));
