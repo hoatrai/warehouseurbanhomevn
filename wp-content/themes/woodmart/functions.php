@@ -6653,14 +6653,15 @@ function spiritwebs_handle_csv_export() {
             ) AS luot_xem_sdt,
 
             (
-                SELECT GROUP_CONCAT(CONCAT(t.display_name, ' (', t.cnt, ')') ORDER BY t.cnt DESC SEPARATOR ', ')
+                SELECT GROUP_CONCAT(CONCAT(u.display_name, ' (', cnt_tbl.cnt, ')') ORDER BY cnt_tbl.cnt DESC SEPARATOR ', ')
                 FROM (
-                    SELECT u.display_name AS display_name, COUNT(*) AS cnt
-                    FROM $table_luotxem lx
-                    LEFT JOIN $table_users u ON u.ID = lx.nguoidung_id
-                    WHERE lx.nhadat_id = d.id AND lx.phone_status IS NULL
-                    GROUP BY lx.nguoidung_id
-                ) t
+                    SELECT nhadat_id, nguoidung_id, COUNT(*) AS cnt
+                    FROM $table_luotxem
+                    WHERE phone_status IS NULL
+                    GROUP BY nhadat_id, nguoidung_id
+                ) cnt_tbl
+                LEFT JOIN $table_users u ON u.ID = cnt_tbl.nguoidung_id
+                WHERE cnt_tbl.nhadat_id = d.id
             ) AS nguoi_xem_sdt
 
         FROM $table d
@@ -6685,7 +6686,20 @@ function spiritwebs_handle_csv_export() {
     ";
 
     $results = $wpdb->get_results($sql, ARRAY_A);
-    if (empty($results)) return;
+
+    if ($wpdb->last_error) {
+        add_action('admin_notices', function () use ($wpdb) {
+            echo '<div class="notice notice-error is-dismissible"><p>Lỗi xuất CSV: ' . esc_html($wpdb->last_error) . '</p></div>';
+        });
+        return;
+    }
+
+    if (empty($results)) {
+        add_action('admin_notices', function () {
+            echo '<div class="notice notice-warning is-dismissible"><p>Không có dữ liệu để xuất CSV.</p></div>';
+        });
+        return;
+    }
 
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename=dulieunhadat_' . date('Ymd_His') . '.csv');
