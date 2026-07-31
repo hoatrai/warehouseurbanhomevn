@@ -6581,12 +6581,33 @@ function spiritwebs_clean_csv_text($text) {
     return trim($text);
 }
 
+// 🆕 Định dạng cột "Bổ Sung Thông Tin" từ JSON contact_info (name_more, phone_more, vaitro_more, gender_more)
+function spiritwebs_format_contact_info_csv($contact_info_raw) {
+    if (empty($contact_info_raw)) return '';
+
+    $contacts = is_array($contact_info_raw) ? $contact_info_raw : json_decode($contact_info_raw, true);
+    if (empty($contacts) || !is_array($contacts)) return '';
+
+    $parts = [];
+    foreach ($contacts as $c) {
+        $name = trim($c['name_more'] ?? '');
+        $phone = trim($c['phone_more'] ?? '');
+        if ($name === '' && $phone === '') continue;
+
+        $item = trim($name . ($phone !== '' ? ' - ' . $phone : ''));
+        $parts[] = $item;
+    }
+
+    return spiritwebs_clean_csv_text(implode('; ', $parts));
+}
+
 function spiritwebs_handle_csv_export() {
     if (!isset($_POST['spiritwebs_export_csv'])) return;
 
     global $wpdb;
 
     $table = $wpdb->prefix . 'dulieunhadat';
+    $table_luotxem = $wpdb->prefix . 'luot_xem_sdt';
     $province = $wpdb->prefix . 'province';
     $district = $wpdb->prefix . 'district';
     $wards = $wpdb->prefix . 'wards';
@@ -6622,7 +6643,13 @@ function spiritwebs_handle_csv_export() {
 
             t_ttgd.name AS tinhtrang_gd,
             COALESCE(d.dateupdate, d.datecreate) AS dateupdate,
-            d.ghichu
+            d.ghichu,
+            d.contact_info,
+
+            (
+                SELECT COUNT(*) FROM $table_luotxem lx
+                WHERE lx.nhadat_id = d.id AND lx.phone_status IS NULL
+            ) AS luot_xem_sdt
 
         FROM $table d
 
@@ -6675,7 +6702,9 @@ function spiritwebs_handle_csv_export() {
         'Số Điện Thoại',
         'Tình Trạng Giao Dịch',
         'Ngày Update',
-        'Ghi Chú'
+        'Ghi Chú',
+        'Lượt Xem SĐT',
+        'Bổ Sung Thông Tin'
     ]);
 
     foreach ($results as $row) {
@@ -6701,6 +6730,8 @@ function spiritwebs_handle_csv_export() {
             $row['tinhtrang_gd'],
             $row['dateupdate'],
             spiritwebs_clean_csv_text($row['ghichu']), // ✅ FIX TẠI ĐÂY
+            $row['luot_xem_sdt'],
+            spiritwebs_format_contact_info_csv($row['contact_info']),
         ]);
     }
 
