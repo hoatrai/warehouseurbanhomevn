@@ -7715,6 +7715,46 @@ function get_report_html_by_nhadat() {
           AND phone_status IS NULL
     ");
 
+    // 🆕 Lấy chi tiết từng report (ai report + ghi chú kèm theo) để hiện ngay trong từng khối
+    $detailRows = $wpdb->get_results($wpdb->prepare("
+        SELECT nguoidung_id, phone_status, note, thoi_gian
+        FROM $table
+        WHERE nhadat_id = %d
+          AND phone_status IS NOT NULL
+        ORDER BY thoi_gian DESC
+    ", $nhadat_id));
+
+    // Gom nhóm chi tiết theo từng loại phone_status
+    $grouped = [1 => [], 2 => [], 3 => [], 4 => []];
+    foreach ($detailRows as $row) {
+        if (!isset($grouped[$row->phone_status])) continue;
+        $user = get_userdata($row->nguoidung_id);
+        $grouped[$row->phone_status][] = [
+            'user'      => $user ? $user->display_name : 'Không rõ',
+            'note'      => trim((string) $row->note),
+            'thoi_gian' => $row->thoi_gian,
+        ];
+    }
+
+    // Render danh sách nhỏ (tên người report + ghi chú) cho 1 loại report
+    $render_report_detail_list = function ($items) {
+        if (empty($items)) return '';
+        $html = '<ul style="margin:8px 0 0; padding-left:18px; font-size:12px; color:#555; font-weight:normal; list-style:disc;">';
+        foreach ($items as $item) {
+            $time = mysql2date('d/m/Y H:i', $item['thoi_gian']);
+            $noteHtml = $item['note'] !== ''
+                ? ' - "' . esc_html($item['note']) . '"'
+                : ' <i style="color:#999;">(không có ghi chú)</i>';
+            $html .= '<li style="margin-bottom:4px;">'
+                . '<b>' . esc_html($item['user']) . '</b>' . $noteHtml
+                . ' <span style="color:#999;">(' . esc_html($time) . ')</span>'
+                . '</li>';
+        }
+        $html .= '</ul>';
+        return $html;
+    };
+
+
     ob_start(); ?>
     <div style="border:1px solid #ddd; border-radius:8px; padding:15px; background:#f9f9f9;">
         <h2 style="margin:0 0 15px; font-size:18px; color:#2c3e50;">Report:</h2>
@@ -7722,33 +7762,45 @@ function get_report_html_by_nhadat() {
 
 
         <div style="display:flex; flex-direction:column; gap:10px;">
-            <div style="display:flex; gap:10px; align-items:center; background:#eafaf1; border-radius:12px; padding:10px;">
-                <i class="fas fa-check-circle" style="color:#27ae60; font-size:20px;"></i>
-                <div style="color:#27ae60; font-weight:bold;">
-                    <?= intval($data->dung) ?> <span style="font-size:12px;">Report</span><br>
-                    <span style="color:#333; font-weight:normal;">Đúng Thông Tin</span>
+            <div style="background:#eafaf1; border-radius:12px; padding:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <i class="fas fa-check-circle" style="color:#27ae60; font-size:20px;"></i>
+                    <div style="color:#27ae60; font-weight:bold;">
+                        <?= intval($data->dung) ?> <span style="font-size:12px;">Report</span><br>
+                        <span style="color:#333; font-weight:normal;">Đúng Thông Tin</span>
+                    </div>
                 </div>
+                <?= $render_report_detail_list($grouped[1]) ?>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; background:#fdecea; border-radius:12px; padding:10px;">
-                <i class="fas fa-times-circle" style="color:#e74c3c; font-size:20px;"></i>
-                <div style="color:#e74c3c; font-weight:bold;">
-                    <?= intval($data->sai) ?> <span style="font-size:12px;">Report</span><br>
-                    <span style="color:#333; font-weight:normal;">Sai Thông Tin</span>
+            <div style="background:#fdecea; border-radius:12px; padding:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <i class="fas fa-times-circle" style="color:#e74c3c; font-size:20px;"></i>
+                    <div style="color:#e74c3c; font-weight:bold;">
+                        <?= intval($data->sai) ?> <span style="font-size:12px;">Report</span><br>
+                        <span style="color:#333; font-weight:normal;">Sai Thông Tin</span>
+                    </div>
                 </div>
+                <?= $render_report_detail_list($grouped[2]) ?>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; background:#fff8e1; border-radius:12px; padding:10px;">
-                <i class="fas fa-phone-slash" style="color:#f39c12; font-size:20px;"></i>
-                <div style="color:#f39c12; font-weight:bold;">
-                    <?= intval($data->khong) ?> <span style="font-size:12px;">Report</span><br>
-                    <span style="color:#333; font-weight:normal;">Không Liên Lạc Được</span>
+            <div style="background:#fff8e1; border-radius:12px; padding:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <i class="fas fa-phone-slash" style="color:#f39c12; font-size:20px;"></i>
+                    <div style="color:#f39c12; font-weight:bold;">
+                        <?= intval($data->khong) ?> <span style="font-size:12px;">Report</span><br>
+                        <span style="color:#333; font-weight:normal;">Không Liên Lạc Được</span>
+                    </div>
                 </div>
+                <?= $render_report_detail_list($grouped[3]) ?>
             </div>
-            <div style="display:flex; gap:10px; align-items:center; background:#f3eafc; border-radius:12px; padding:10px;">
-                <i class="fas fa-user-tie" style="color:#8e44ad; font-size:20px;"></i>
-                <div style="color:#8e44ad; font-weight:bold;">
-                    <?= intval($data->moi) ?> <span style="font-size:12px;">Report</span><br>
-                    <span style="color:#333; font-weight:normal;">Số Môi Giới</span>
+            <div style="background:#f3eafc; border-radius:12px; padding:10px;">
+                <div style="display:flex; gap:10px; align-items:center;">
+                    <i class="fas fa-user-tie" style="color:#8e44ad; font-size:20px;"></i>
+                    <div style="color:#8e44ad; font-weight:bold;">
+                        <?= intval($data->moi) ?> <span style="font-size:12px;">Report</span><br>
+                        <span style="color:#333; font-weight:normal;">Số Môi Giới</span>
+                    </div>
                 </div>
+                <?= $render_report_detail_list($grouped[4]) ?>
             </div>
         </div>
 
