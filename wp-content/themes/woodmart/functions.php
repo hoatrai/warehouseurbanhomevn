@@ -4692,6 +4692,37 @@ function render_user_view_property_chart() {
         GROUP BY nguoidung_id, nhadat_id
     ");
 
+    // Chi tiết từng lượt cập nhật tình trạng số điện thoại (cho tooltip)
+    $status_labels = [
+        1 => 'Đúng Thông Tin',
+        2 => 'Sai Thông Tin',
+        3 => 'Không Liên Lạc Được',
+        4 => 'Số Môi Giới',
+    ];
+
+    $phone_detail_raw = $wpdb->get_results("
+        SELECT l.nguoidung_id, l.nhadat_id, l.thoi_gian, l.phone_status, l.note, u.user_login
+        FROM {$table_name} l
+        LEFT JOIN {$wpdb->users} u ON u.ID = l.nguoidung_id
+        WHERE l.phone_status IS NOT NULL
+          AND YEARWEEK(l.thoi_gian, 1) = YEARWEEK(NOW(), 1)
+        ORDER BY l.thoi_gian DESC
+    ");
+
+    $phone_update_detail = [];
+    foreach ($phone_detail_raw as $row) {
+        $uid = $row->nguoidung_id;
+        $status_text = $status_labels[(int) $row->phone_status] ?? 'Không xác định';
+        $account = $row->user_login ?: "NV#{$uid}";
+        $time_text = date('d/m H:i', strtotime($row->thoi_gian));
+        $line = "{$time_text} - {$account} - NĐ#{$row->nhadat_id}: {$status_text}";
+        $note_text = trim((string) $row->note);
+        if ($note_text !== '') {
+            $line .= " ({$note_text})";
+        }
+        $phone_update_detail[$uid][] = $line;
+    }
+
     $user_data = [];
     foreach ($raw_results as $row) {
         $user_id = $row->nguoidung_id;
@@ -4738,6 +4769,7 @@ function render_user_view_property_chart() {
     $products_view = [];
     $products_phone = [];
     $products_note = [];
+    $products_phone_detail = [];
 
     foreach ($user_data as $user_id => $data) {
         $user_info = get_userdata($user_id);
@@ -4758,6 +4790,9 @@ function render_user_view_property_chart() {
             $products_view[] = implode(', ', array_unique($data['nhadat_ids']['view']));
             $products_phone[] = implode(', ', array_unique($data['nhadat_ids']['phone']));
             $products_note[] = implode(', ', array_unique($data['nhadat_ids']['note']));
+            $products_phone_detail[] = isset($phone_update_detail[$user_id])
+                ? implode("\n", $phone_update_detail[$user_id])
+                : '';
         }
     }
     $chart_datasets = [];
@@ -4828,6 +4863,7 @@ function render_user_view_property_chart() {
             const productsView = <?php echo json_encode($can_view_phone_stat ? $products_view : []); ?>;
             const productsPhone = <?php echo json_encode($products_phone); ?>;
             const productsNote = <?php echo json_encode($products_note); ?>;
+            const phoneUpdateDetail = <?php echo json_encode($products_phone_detail); ?>;
 
             new Chart(ctx, {
                 type: 'bar',
@@ -4857,14 +4893,19 @@ function render_user_view_property_chart() {
             afterBody: ctx => {
                 const i = ctx[0].dataIndex;
                 const label = ctx[0].dataset.label;
-                let products = '';
 
+                if (label === 'Cập nhật tình trạng số điện thoại') {
+                    const detail = phoneUpdateDetail[i];
+                    if (!detail) return ['Chưa có cập nhật nào'];
+                    return ['Chi tiết cập nhật:', ...detail.split('\n')];
+                }
+
+                let products = '';
                 if (label === 'Xem số điện thoại') products = productsView[i];
-                else if (label === 'Cập nhật tình trạng số điện thoại') products = productsPhone[i];
                 else if (label === 'Bổ xung thông tin nhà') products = productsNote[i];
 
-                const wrapped = products?.match(/.{1,40}/g)?.join('\n') || 'Không có sản phẩm';
-                return `Sản phẩm:\n${wrapped}`;
+                const wrapped = products?.match(/.{1,40}/g) || ['Không có sản phẩm'];
+                return ['Sản phẩm:', ...wrapped];
             }
         },
             backgroundColor: '#fff',
