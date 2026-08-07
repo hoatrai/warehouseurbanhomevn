@@ -5230,11 +5230,16 @@ function render_user_view_property_chart() {
                 return div.innerHTML;
             }
 
-            // Ẩn tooltip khi cuộn trang / rời khỏi biểu đồ
-            window.addEventListener('scroll', () => {
-                isHoveringTooltip = false;
-            const el = document.getElementById('chartjs-tooltip-user-view');
-            if (el) el.classList.remove('is-visible');
+            // Ẩn tooltip khi cuộn TRANG (không phải khi cuộn bên trong chính tooltip)
+            window.addEventListener('scroll', (e) => {
+                const el = document.getElementById('chartjs-tooltip-user-view');
+            if (!el) return;
+            // Nếu sự kiện scroll đến từ chính tooltip (đang cuộn để đọc nội dung) thì bỏ qua
+            if (e.target === el || el.contains(e.target)) {
+                return;
+            }
+            isHoveringTooltip = false;
+            el.classList.remove('is-visible');
         }, true);
 
             new Chart(ctx, {
