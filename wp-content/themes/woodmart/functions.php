@@ -5137,14 +5137,39 @@ function render_user_view_property_chart() {
             const noteUpdateDetail = <?php echo json_encode($products_note_detail); ?>;
 
             // ===== Custom HTML tooltip (không bị widget dashboard che/cắt khi nhiều dữ liệu) =====
+            let hideTimer = null;
+            let isHoveringTooltip = false;
+
             function getOrCreateTooltip() {
                 let tooltipEl = document.getElementById('chartjs-tooltip-user-view');
                 if (!tooltipEl) {
                     tooltipEl = document.createElement('div');
                     tooltipEl.id = 'chartjs-tooltip-user-view';
                     document.body.appendChild(tooltipEl);
+
+                    // Giữ tooltip hiển thị khi chuột đang rê vào bên trong nó (để cuộn xem hết nội dung)
+                    tooltipEl.addEventListener('mouseenter', () => {
+                        isHoveringTooltip = true;
+                    if (hideTimer) {
+                        clearTimeout(hideTimer);
+                        hideTimer = null;
+                    }
+                });
+                    tooltipEl.addEventListener('mouseleave', () => {
+                        isHoveringTooltip = false;
+                    tooltipEl.classList.remove('is-visible');
+                });
                 }
                 return tooltipEl;
+            }
+
+            function hideTooltip(tooltipEl) {
+                // Trễ 1 chút trước khi ẩn, để chuột kịp di chuyển từ canvas vào tooltip mà không bị mất
+                hideTimer = setTimeout(() => {
+                        if (!isHoveringTooltip) {
+                    tooltipEl.classList.remove('is-visible');
+                }
+            }, 150);
             }
 
             function externalTooltipHandler(context) {
@@ -5152,8 +5177,14 @@ function render_user_view_property_chart() {
                 const tooltipEl = getOrCreateTooltip();
 
                 if (tooltip.opacity === 0) {
-                    tooltipEl.classList.remove('is-visible');
+                    hideTooltip(tooltipEl);
                     return;
+                }
+
+                // Có dữ liệu mới cần hiện => hủy lịch ẩn (nếu có)
+                if (hideTimer) {
+                    clearTimeout(hideTimer);
+                    hideTimer = null;
                 }
 
                 // Build nội dung HTML
@@ -5201,7 +5232,8 @@ function render_user_view_property_chart() {
 
             // Ẩn tooltip khi cuộn trang / rời khỏi biểu đồ
             window.addEventListener('scroll', () => {
-                const el = document.getElementById('chartjs-tooltip-user-view');
+                isHoveringTooltip = false;
+            const el = document.getElementById('chartjs-tooltip-user-view');
             if (el) el.classList.remove('is-visible');
         }, true);
 
