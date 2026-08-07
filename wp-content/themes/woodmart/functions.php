@@ -5083,6 +5083,47 @@ function render_user_view_property_chart() {
         <canvas id="user-view-chart" width="100%" height="288"></canvas>
     </div>
 
+    <style>
+        #chartjs-tooltip-user-view {
+            position: fixed;
+            pointer-events: none;
+            z-index: 99999;
+            background: #fff;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+            padding: 12px 14px;
+            max-width: 380px;
+            max-height: 320px;
+            overflow-y: auto;
+            font-size: 13px;
+            line-height: 1.5;
+            color: #333;
+            white-space: pre-wrap;
+            opacity: 0;
+            transition: opacity .1s ease;
+        }
+        #chartjs-tooltip-user-view.is-visible {
+            opacity: 1;
+            pointer-events: auto; /* cho phép cuộn chuột khi cần */
+        }
+        #chartjs-tooltip-user-view .tt-title {
+            font-weight: bold;
+            font-size: 14px;
+            color: #000;
+            margin-bottom: 6px;
+        }
+        #chartjs-tooltip-user-view .tt-body {
+            margin-bottom: 2px;
+        }
+        #chartjs-tooltip-user-view .tt-after {
+            margin-top: 6px;
+            padding-top: 6px;
+            border-top: 1px dashed #ddd;
+            color: #444;
+        }
+    </style>
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const ctx = document.getElementById('user-view-chart').getContext('2d');
@@ -5095,6 +5136,75 @@ function render_user_view_property_chart() {
             const phoneUpdateDetail = <?php echo json_encode($products_phone_detail); ?>;
             const noteUpdateDetail = <?php echo json_encode($products_note_detail); ?>;
 
+            // ===== Custom HTML tooltip (không bị widget dashboard che/cắt khi nhiều dữ liệu) =====
+            function getOrCreateTooltip() {
+                let tooltipEl = document.getElementById('chartjs-tooltip-user-view');
+                if (!tooltipEl) {
+                    tooltipEl = document.createElement('div');
+                    tooltipEl.id = 'chartjs-tooltip-user-view';
+                    document.body.appendChild(tooltipEl);
+                }
+                return tooltipEl;
+            }
+
+            function externalTooltipHandler(context) {
+                const { chart, tooltip } = context;
+                const tooltipEl = getOrCreateTooltip();
+
+                if (tooltip.opacity === 0) {
+                    tooltipEl.classList.remove('is-visible');
+                    return;
+                }
+
+                // Build nội dung HTML
+                let html = '';
+                if (tooltip.title && tooltip.title.length) {
+                    html += '<div class="tt-title">' + tooltip.title.map(escapeHtml).join('<br>') + '</div>';
+                }
+                (tooltip.body || []).forEach(b => {
+                (b.lines || []).forEach(line => {
+                    html += '<div class="tt-body">' + escapeHtml(line) + '</div>';
+            });
+            });
+                if (tooltip.afterBody && tooltip.afterBody.length) {
+                    html += '<div class="tt-after">' + tooltip.afterBody.map(escapeHtml).join('<br>') + '</div>';
+                }
+                tooltipEl.innerHTML = html;
+
+                // Định vị theo vị trí con trỏ trên canvas, có giới hạn trong viewport để không bị tràn/che
+                const canvasRect = chart.canvas.getBoundingClientRect();
+                let left = canvasRect.left + tooltip.caretX + 12;
+                let top = canvasRect.top + tooltip.caretY + 12;
+
+                tooltipEl.classList.add('is-visible');
+                // Đo kích thước sau khi có nội dung để canh lại cho không tràn màn hình
+                requestAnimationFrame(() => {
+                    const ttRect = tooltipEl.getBoundingClientRect();
+                if (left + ttRect.width > window.innerWidth - 8) {
+                    left = canvasRect.left + tooltip.caretX - ttRect.width - 12;
+                }
+                if (top + ttRect.height > window.innerHeight - 8) {
+                    top = window.innerHeight - ttRect.height - 8;
+                }
+                if (top < 8) top = 8;
+                if (left < 8) left = 8;
+                tooltipEl.style.left = left + 'px';
+                tooltipEl.style.top = top + 'px';
+            });
+            }
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+
+            // Ẩn tooltip khi cuộn trang / rời khỏi biểu đồ
+            window.addEventListener('scroll', () => {
+                const el = document.getElementById('chartjs-tooltip-user-view');
+            if (el) el.classList.remove('is-visible');
+        }, true);
+
             new Chart(ctx, {
                 type: 'bar',
                 data: {
@@ -5106,6 +5216,8 @@ function render_user_view_property_chart() {
                     maintainAspectRatio: false,
                     plugins: {
                         tooltip: {
+                            enabled: false,
+                            external: externalTooltipHandler,
                             callbacks: {
                                 title: ctx => ctx[0].label,
                             label: ctx => {
@@ -5140,15 +5252,7 @@ function render_user_view_property_chart() {
                 const wrapped = products?.match(/.{1,40}/g) || ['Không có sản phẩm'];
                 return ['Sản phẩm:', ...wrapped];
             }
-        },
-            backgroundColor: '#fff',
-                titleColor: '#000',
-                bodyColor: '#333',
-                borderColor: '#ccc',
-                borderWidth: 1,
-                padding: 12,
-                bodyFont: { size: 13 },
-            titleFont: { size: 14, weight: 'bold' }
+        }
         },
             legend: {
                 position: 'top',
