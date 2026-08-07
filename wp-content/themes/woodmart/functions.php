@@ -4594,6 +4594,23 @@ function render_user_data_entry_chart() {
     }
     ?>
 
+    <form method="get" action="<?php echo admin_url('admin-post.php'); ?>"
+          style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+        <input type="hidden" name="action" value="export_dashboard_stats">
+        <input type="hidden" name="type" value="hangnhap">
+        <select name="month">
+            <?php $currentMonth = date('n'); for ($m = 1; $m <= 12; $m++): ?>
+                <option value="<?php echo $m; ?>" <?php selected($m, $currentMonth); ?>>Tháng <?php echo $m; ?></option>
+            <?php endfor; ?>
+        </select>
+        <select name="year">
+            <?php $currentYear = date('Y'); for ($y = $currentYear; $y >= $currentYear - 3; $y--): ?>
+                <option value="<?php echo $y; ?>" <?php selected($y, $currentYear); ?>><?php echo $y; ?></option>
+            <?php endfor; ?>
+        </select>
+        <button class="button button-primary">⬇ Xuất CSV</button>
+    </form>
+
     <div id="user_data_entry_chart" style="background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
         <canvas id="user-entry-chart" width="100%"></canvas>
     </div>
@@ -4672,6 +4689,123 @@ function add_user_data_entry_chart_to_dashboard() {
     );
 }
 add_action( 'wp_dashboard_setup', 'add_user_data_entry_chart_to_dashboard' );
+
+
+// chart thống kê nhân viên nhập hàng TRONG TUẦN - tự động tính lại từ đầu mỗi khi sang tuần mới
+function render_user_data_entry_chart_weekly() {
+    global $wpdb;
+
+    // YEARWEEK(created_at, 1) = YEARWEEK(NOW(), 1) => chỉ lấy dữ liệu của tuần hiện tại (tuần bắt đầu từ Thứ Hai)
+    // Hết tuần, YEARWEEK(NOW(),1) tự đổi giá trị nên số liệu tự "tính lại từ đầu" mà không cần cron/reset thủ công.
+    $results = $wpdb->get_results("
+        SELECT u.ID, u.display_name, COUNT(d.id) AS total
+        FROM {$wpdb->prefix}users u
+        INNER JOIN {$wpdb->prefix}dulieunhadat d ON u.ID = d.user
+        WHERE YEARWEEK(d.datecreate, 1) = YEARWEEK(NOW(), 1)
+        GROUP BY u.ID, u.display_name
+        ORDER BY total DESC
+    ");
+
+    $user_data = [];
+    foreach ( $results as $row ) {
+        $user_data[] = [
+            'label' => $row->display_name,
+            'data'  => (int) $row->total,
+        ];
+    }
+
+    // Xác định khoảng ngày của tuần hiện tại (Thứ Hai -> Chủ Nhật) để hiển thị cho rõ
+    $week_start = date('d/m/Y', strtotime('monday this week'));
+    $week_end   = date('d/m/Y', strtotime('sunday this week'));
+
+    ?>
+    <p style="margin:0 0 10px;color:#666;">Tuần này: <strong><?php echo esc_html($week_start . ' - ' . $week_end); ?></strong> (tự động tính lại khi sang tuần mới)</p>
+    <?php
+
+    if ( empty( $user_data ) ) {
+        echo '<p>Chưa có dữ liệu hàng nhập trong tuần này.</p>';
+        return;
+    }
+    ?>
+
+    <div id="user_data_entry_chart_weekly" style="background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);">
+        <canvas id="user-entry-chart-weekly" width="100%"></canvas>
+    </div>
+
+    <style>
+        #user_data_entry_chart_weekly {
+            background-color: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 3px 15px rgba(0, 0, 0, 0.05);
+        }
+        #user-entry-chart-weekly {
+            margin-top: 20px;
+        }
+    </style>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            var ctx = document.getElementById('user-entry-chart-weekly').getContext('2d');
+
+            var gradient = ctx.createLinearGradient(0, 0, 0, 400);
+            gradient.addColorStop(0, 'rgba(46, 204, 113, 0.6)');
+            gradient.addColorStop(1, 'rgba(46, 204, 113, 0)');
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: <?php echo json_encode( array_column( $user_data, 'label' ) ); ?>,
+                    datasets: [{
+                        label: 'Số lượng hàng nhập (tuần này)',
+                        data: <?php echo json_encode( array_column( $user_data, 'data' ) ); ?>,
+                        backgroundColor: gradient,
+                        borderColor: 'rgba(46, 204, 113, 1)',
+                        borderWidth: 2,
+                        borderRadius: 8,
+                        hoverBackgroundColor: 'rgba(46, 204, 113, 0.8)',
+                        hoverBorderWidth: 3,
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#333', font: { size: 14 } }
+                        },
+                        tooltip: {
+                            backgroundColor: '#fff',
+                            titleColor: '#333',
+                            bodyColor: '#000',
+                            borderColor: '#ccc',
+                            borderWidth: 1
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: '#333' },
+                            grid: { color: '#eee' }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            ticks: { color: '#333', precision: 0 },
+                            grid: { color: '#eee' }
+                        }
+                    }
+                }
+            });
+        });
+    </script>
+    <?php
+}
+function add_user_data_entry_chart_weekly_to_dashboard() {
+    wp_add_dashboard_widget(
+        'user_data_entry_chart_weekly',
+        'Biểu Đồ Thống Kê Hàng Nhập Theo Nhân Viên (Trong Tuần)',
+        'render_user_data_entry_chart_weekly'
+    );
+}
+add_action( 'wp_dashboard_setup', 'add_user_data_entry_chart_weekly_to_dashboard' );
 
 
 // chart thống kê
@@ -4784,10 +4918,17 @@ function render_user_view_property_chart() {
         if (!empty($field_changes)) {
             $change_lines = [];
             foreach ($field_changes as $field => $vals) {
+                // Bỏ qua các field lưu dữ liệu JSON thô, không cần hiện trong tooltip
+                if (in_array($field, ['contact_all', 'contact_info'], true)) {
+                    continue;
+                }
                 $label = $field_labels[$field] ?? ucfirst(str_replace('_', ' ', $field));
                 $old_val = $format_value($vals['old'] ?? '');
                 $new_val = $format_value($vals['new'] ?? '');
                 $change_lines[] = "{$label}: {$old_val} → {$new_val}";
+            }
+            if (empty($change_lines)) {
+                $change_lines[] = 'Cập nhật thông tin liên hệ';
             }
             $note_detail_by_user[$uid][] = "{$time_text} - NĐ#{$row->record_id}:\n   " . implode("\n   ", $change_lines);
         } else {
@@ -5084,6 +5225,150 @@ function custom_dashboard_product_stats() {
 });*/
 
 
+// ==========================================================
+// CSV Export dùng chung cho các biểu đồ thống kê trên Dashboard
+// (Sản phẩm theo loại / BĐS theo loại / Giao dịch theo loại / Hàng nhập theo NV)
+// ==========================================================
+
+// In ra form chọn tháng/năm + nút Xuất CSV cho 1 loại biểu đồ (type)
+function render_dashboard_csv_export_form( $type ) {
+    ob_start();
+    ?>
+    <form method="get" action="<?php echo admin_url('admin-post.php'); ?>"
+          style="margin-bottom:12px;display:flex;gap:8px;align-items:center;">
+        <input type="hidden" name="action" value="export_dashboard_stats">
+        <input type="hidden" name="type" value="<?php echo esc_attr( $type ); ?>">
+        <select name="month">
+            <?php $currentMonth = date('n'); for ($m = 1; $m <= 12; $m++): ?>
+                <option value="<?php echo $m; ?>" <?php selected($m, $currentMonth); ?>>Tháng <?php echo $m; ?></option>
+            <?php endfor; ?>
+        </select>
+        <select name="year">
+            <?php $currentYear = date('Y'); for ($y = $currentYear; $y >= $currentYear - 3; $y--): ?>
+                <option value="<?php echo $y; ?>" <?php selected($y, $currentYear); ?>><?php echo $y; ?></option>
+            <?php endfor; ?>
+        </select>
+        <button class="button button-primary">⬇ Xuất CSV</button>
+    </form>
+    <?php
+    return ob_get_clean();
+}
+
+add_action('admin_post_export_dashboard_stats', 'handle_export_dashboard_stats_csv');
+function handle_export_dashboard_stats_csv() {
+
+    if ( ! current_user_can('manage_options') ) {
+        wp_die('Không có quyền export');
+    }
+
+    global $wpdb;
+    $table = $wpdb->prefix . 'dulieunhadat';
+
+    $type  = isset($_GET['type']) ? sanitize_key($_GET['type']) : '';
+    $month = intval($_GET['month'] ?? date('m'));
+    $year  = intval($_GET['year'] ?? date('Y'));
+
+    if ($month < 1 || $month > 12) wp_die('Month invalid');
+    if ($year < 2000) wp_die('Year invalid');
+
+    $allowed_types = ['product', 'property', 'transaction', 'hangnhap'];
+    if ( ! in_array($type, $allowed_types, true) ) {
+        wp_die('Loại biểu đồ không hợp lệ');
+    }
+
+    $filename = "thongke_{$type}_{$year}_{$month}.csv";
+
+    header('Content-Type: text/csv; charset=utf-8');
+    header("Content-Disposition: attachment; filename={$filename}");
+    header('Pragma: no-cache');
+    header('Expires: 0');
+
+    $output = fopen('php://output', 'w');
+    // UTF-8 BOM cho Excel
+    fprintf($output, chr(0xEF) . chr(0xBB) . chr(0xBF));
+
+    switch ( $type ) {
+
+        case 'product':
+            $rows = $wpdb->get_results( $wpdb->prepare("
+                SELECT id, product_type, giaban, datecreate
+                FROM {$table}
+                WHERE product_type IN ('517','515')
+                  AND MONTH(datecreate) = %d AND YEAR(datecreate) = %d
+                ORDER BY datecreate DESC
+            ", $month, $year) );
+
+            $type_labels = ['517' => 'Dự án', '515' => 'Nhà ở riêng lẻ'];
+
+            fputcsv($output, ['ID', 'Loại sản phẩm', 'Giá bán', 'Ngày tạo']);
+            foreach ( $rows as $row ) {
+                fputcsv($output, [
+                    $row->id,
+                    $type_labels[$row->product_type] ?? $row->product_type,
+                    $row->giaban,
+                    $row->datecreate ? date('d/m/Y H:i', strtotime($row->datecreate)) : '',
+                ]);
+            }
+            break;
+
+        case 'property':
+            $rows = $wpdb->get_results( $wpdb->prepare("
+                SELECT id, property_type, datecreate
+                FROM {$table}
+                WHERE MONTH(datecreate) = %d AND YEAR(datecreate) = %d
+                ORDER BY datecreate DESC
+            ", $month, $year) );
+
+            fputcsv($output, ['ID', 'Loại BĐS', 'Ngày tạo']);
+            foreach ( $rows as $row ) {
+                $term = get_term($row->property_type, 'category');
+                $label = ($term && !is_wp_error($term)) ? $term->name : 'Không rõ';
+                fputcsv($output, [$row->id, $label, $row->datecreate ? date('d/m/Y H:i', strtotime($row->datecreate)) : '']);
+            }
+            break;
+
+        case 'transaction':
+            $rows = $wpdb->get_results( $wpdb->prepare("
+                SELECT id, transaction_type, datecreate
+                FROM {$table}
+                WHERE MONTH(datecreate) = %d AND YEAR(datecreate) = %d
+                ORDER BY datecreate DESC
+            ", $month, $year) );
+
+            fputcsv($output, ['ID', 'Loại giao dịch', 'Ngày tạo']);
+            foreach ( $rows as $row ) {
+                $term = get_term($row->transaction_type, 'category');
+                $label = ($term && !is_wp_error($term)) ? $term->name : 'Không rõ';
+                fputcsv($output, [$row->id, $label, $row->datecreate ? date('d/m/Y H:i', strtotime($row->datecreate)) : '']);
+            }
+            break;
+
+        case 'hangnhap':
+            $rows = $wpdb->get_results( $wpdb->prepare("
+                SELECT d.id, d.user AS nhanvien_id, u.display_name, d.datecreate
+                FROM {$table} d
+                LEFT JOIN {$wpdb->prefix}users u ON u.ID = d.user
+                WHERE MONTH(d.datecreate) = %d AND YEAR(d.datecreate) = %d
+                ORDER BY d.datecreate DESC
+            ", $month, $year) );
+
+            fputcsv($output, ['ID', 'ID Nhân Viên', 'Tên Nhân Viên', 'Ngày tạo']);
+            foreach ( $rows as $row ) {
+                fputcsv($output, [
+                    $row->id,
+                    $row->nhanvien_id,
+                    $row->display_name ?: "NV#{$row->nhanvien_id}",
+                    $row->datecreate ? date('d/m/Y H:i', strtotime($row->datecreate)) : '',
+                ]);
+            }
+            break;
+    }
+
+    fclose($output);
+    exit;
+}
+
+
 function render_custom_product_stats() {
     global $wpdb;
 
@@ -5131,6 +5416,9 @@ function render_custom_product_stats() {
 
     // Hiển thị bảng
     echo '<div id="custom_product_stats_widget">';
+
+    echo render_dashboard_csv_export_form( 'product' );
+
     echo '<table class="widefat striped">';
     echo '<thead><tr><th>Loại sản phẩm</th><th>Số lượng</th><th>Tổng giá bán</th></tr></thead><tbody>';
 
@@ -5257,6 +5545,9 @@ function render_property_type_stats_widget() {
     // Hiển thị widget
     echo '<div id="custom_property_stats_widget" class="postbox">';
     echo '<div class="inside">';
+
+    echo render_dashboard_csv_export_form( 'property' );
+
     echo '<table class="widefat striped"><thead><tr><th>Loại BĐS</th><th>Số lượng</th></tr></thead><tbody>';
 
     // Mảng để vẽ biểu đồ
@@ -5333,6 +5624,9 @@ function render_transaction_type_stats_widget() {
     // Hiển thị widget
     echo '<div id="custom_transaction_stats_widget" class="postbox">';
     echo '<div class="inside">';
+
+    echo render_dashboard_csv_export_form( 'transaction' );
+
     echo '<table class="widefat striped"><thead><tr><th>Loại giao dịch</th><th>Số lượng</th></tr></thead><tbody>';
 
     $labels = $counts = [];
@@ -5403,6 +5697,7 @@ function hide_all_dashboard_widgets_except_custom_ones() {
                     'custom_property_stats_widget',
                     'custom_transaction_stats_widget',
                     'user_data_entry_chart',
+                    'user_data_entry_chart_weekly', // ← Chart hàng nhập theo NV trong tuần
                     'user_view_property_chart' // ← Thêm dòng này
                 ] ) ) {
                     unset( $wp_meta_boxes['dashboard'][$context][$priority][$widget_id] );
@@ -8501,6 +8796,7 @@ function export_luotxem_sdt_csv() {
     global $wpdb;
     $table = $wpdb->prefix . 'luot_xem_sdt';
     $users = $wpdb->users; // wp_users
+    $history_table = $wpdb->prefix . 'dulieunhadat_history';
 
     $month = intval($_GET['month'] ?? date('m'));
     $year  = intval($_GET['year'] ?? date('Y'));
@@ -8508,7 +8804,14 @@ function export_luotxem_sdt_csv() {
     if ($month < 1 || $month > 12) wp_die('Month invalid');
     if ($year < 2000) wp_die('Year invalid');
 
-    // ✅ Query join user
+    $status_labels = [
+        1 => 'Đúng Thông Tin',
+        2 => 'Sai Thông Tin',
+        3 => 'Không Liên Lạc Được',
+        4 => 'Số Môi Giới',
+    ];
+
+    // ✅ Query join user - lượt xem / cập nhật tình trạng số điện thoại
     $sql = $wpdb->prepare("
         SELECT 
             l.id,
@@ -8516,7 +8819,9 @@ function export_luotxem_sdt_csv() {
             u.user_login AS ten_nguoidung,
             l.nhadat_id,
             l.thoi_gian,
-            l.ip
+            l.ip,
+            l.phone_status,
+            l.note
         FROM {$table} l
         LEFT JOIN {$users} u 
             ON u.ID = l.nguoidung_id
@@ -8525,11 +8830,44 @@ function export_luotxem_sdt_csv() {
         ORDER BY l.thoi_gian DESC
     ", $year, $month);
 
-    $rows = $wpdb->get_results($sql, ARRAY_A);
+    $phone_rows = $wpdb->get_results($sql, ARRAY_A);
 
-    if (empty($rows)) {
+    // ✅ Bổ sung thông tin nhà - lấy từ lịch sử chỉnh sửa dữ liệu nhà đất
+    $history_sql = $wpdb->prepare("
+        SELECT record_id, changed_fields, userupdate, dateupdate, data
+        FROM {$history_table}
+        WHERE YEAR(dateupdate) = %d
+          AND MONTH(dateupdate) = %d
+        ORDER BY dateupdate DESC
+    ", $year, $month);
+
+    $history_rows = $wpdb->get_results($history_sql, ARRAY_A);
+
+    if (empty($phone_rows) && empty($history_rows)) {
         wp_die("Không có dữ liệu tháng {$month}/{$year}");
     }
+
+    // Tên trường hiển thị thân thiện cho phần "Bổ sung thông tin nhà" (giống chart trên dashboard)
+    $field_labels = [
+        'tieu_de'            => 'Tiêu đề',
+        'tom_tat'            => 'Mô tả',
+        'gia'                => 'Giá',
+        'dien_tich'          => 'Diện tích',
+        'diachi'             => 'Địa chỉ',
+        'dia_chi'            => 'Địa chỉ',
+        'tinhtranggiaodich'  => 'Tình trạng giao dịch',
+        'name'               => 'Tên liên hệ',
+        'dienthoaididong'    => 'Số điện thoại',
+        'vaitro'             => 'Vai trò',
+        'gioitinh'           => 'Giới tính',
+    ];
+
+    $format_value = function ($val) {
+        $val = trim((string) $val);
+        if ($val === '') return '(trống)';
+        if (is_numeric($val)) return number_format((float) $val, 0, ',', '.');
+        return mb_strlen($val) > 60 ? mb_substr($val, 0, 60) . '...' : $val;
+    };
 
     $filename = "luotxem_sdt_{$year}_{$month}.csv";
 
@@ -8543,34 +8881,100 @@ function export_luotxem_sdt_csv() {
     // UTF-8 BOM cho Excel
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
 
-    // Header CSV
-    // Header CSV (Tiếng Việt)
+    // Header CSV (Tiếng Việt) - dùng chung 1 bảng, phân biệt bằng cột "Loại hoạt động"
     fputcsv($output, [
-        'ID',
+        'Loại hoạt động',
         'ID Nhân Viên',
         'Tên Nhân Viên',
         'ID Nhà đất',
         'Thời gian',
+        'Chi tiết',
         'IP'
     ]);
 
+    // Gộp dữ liệu 2 nguồn lại rồi sắp xếp theo thời gian giảm dần
+    $combined = [];
 
-    // Data
-    foreach ($rows as $row) {
+    // 1) Xem số điện thoại / Cập nhật tình trạng số điện thoại
+    foreach ($phone_rows as $row) {
+        $has_status = !empty($row['phone_status']);
+        $loai = $has_status ? 'Cập nhật tình trạng số điện thoại' : 'Xem số điện thoại';
 
-        // ✅ Format ngày giờ: dd/mm/YYYY HH:ii
-        $formatted_time = date('d/m/Y H:i', strtotime($row['thoi_gian']));
+        $chi_tiet = '';
+        if ($has_status) {
+            $chi_tiet = $status_labels[(int) $row['phone_status']] ?? 'Không xác định';
+            $note_text = trim((string) $row['note']);
+            if ($note_text !== '') {
+                $chi_tiet .= ' - Ghi chú: ' . $note_text;
+            }
+        }
 
-        fputcsv($output, [
-            $row['id'],
-            $row['nguoidung_id'],
-            $row['ten_nguoidung'],
-            $row['nhadat_id'],
-            $formatted_time,
-            $row['ip'],
-        ]);
+        $combined[] = [
+            'time'   => $row['thoi_gian'],
+            'fields' => [
+                $loai,
+                $row['nguoidung_id'],
+                $row['ten_nguoidung'],
+                $row['nhadat_id'],
+                date('d/m/Y H:i', strtotime($row['thoi_gian'])),
+                $chi_tiet,
+                $row['ip'],
+            ],
+        ];
     }
 
+    // 2) Bổ sung thông tin nhà
+    foreach ($history_rows as $row) {
+        $uid = (int) $row['userupdate'];
+        $user_info = get_userdata($uid);
+        $ten_nv = $user_info ? $user_info->user_login : "NV#{$uid}";
+
+        $unserialized = !empty($row['data']) ? maybe_unserialize($row['data']) : [];
+        $field_changes = (is_array($unserialized) && !empty($unserialized['field_changes']))
+            ? $unserialized['field_changes']
+            : [];
+
+        $change_lines = [];
+        if (!empty($field_changes)) {
+            foreach ($field_changes as $field => $vals) {
+                if (in_array($field, ['contact_all', 'contact_info'], true)) {
+                    continue;
+                }
+                $label = $field_labels[$field] ?? ucfirst(str_replace('_', ' ', $field));
+                $old_val = $format_value($vals['old'] ?? '');
+                $new_val = $format_value($vals['new'] ?? '');
+                $change_lines[] = "{$label}: {$old_val} -> {$new_val}";
+            }
+        }
+        if (empty($change_lines)) {
+            $fields = trim((string) $row['changed_fields']) !== ''
+                ? str_replace(',', ', ', $row['changed_fields'])
+                : 'Cập nhật thông tin liên hệ';
+            $change_lines[] = $fields;
+        }
+
+        $combined[] = [
+            'time'   => $row['dateupdate'],
+            'fields' => [
+                'Bổ sung thông tin nhà',
+                $uid,
+                $ten_nv,
+                $row['record_id'],
+                date('d/m/Y H:i', strtotime($row['dateupdate'])),
+                implode(' | ', $change_lines),
+                '',
+            ],
+        ];
+    }
+
+    // Sắp xếp toàn bộ theo thời gian giảm dần
+    usort($combined, function ($a, $b) {
+        return strtotime($b['time']) <=> strtotime($a['time']);
+    });
+
+    foreach ($combined as $item) {
+        fputcsv($output, $item['fields']);
+    }
 
     fclose($output);
     exit;
