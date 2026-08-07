@@ -3214,7 +3214,12 @@ jQuery(document).ready(function ($) {
                                                         cache: false, // JQuery tự thêm tham số _=timestamp
                                                         success: function(response) {
                                                             alert(response.data.message);
-                                                            location.reload();
+                                                            // Không reload / không chuyển trang - giữ nguyên form
+                                                            $submitBtn.prop('disabled', false).css({
+                                                                'background-color': '#e74c3c',
+                                                                'color': '#fff',
+                                                                'cursor': 'pointer'
+                                                            });
                                                         },
                                                         error: function() {
                                                             alert('Lỗi khi gửi dữ liệu!');
